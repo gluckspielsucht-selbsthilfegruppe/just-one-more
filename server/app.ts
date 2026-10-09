@@ -256,6 +256,7 @@ export function createApplication(
       name: name.data,
       color: COLORS[randomInt(COLORS.length)],
       theme: 'classic',
+      appearance: 'neon',
       account: false,
       stats: { games: 0, wins: 0, bestScore: 0, rounds: 0, bestRound: 0 },
     };
@@ -272,6 +273,7 @@ export function createApplication(
         name: cleanName,
         color: z.enum(COLORS as [string, ...string[]]),
         theme: z.enum(['classic', 'midnight', 'mint']),
+        appearance: z.enum(['neon', 'velvet', 'pop']).optional(),
       })
       .safeParse(req.body);
     if (!parsed.success)

@@ -24,6 +24,8 @@ npm start
 
 Both modes serve the website and WebSocket connection from one port. The production build bundles its fonts, icons, and all assets locally; gameplay has no third-party service dependency.
 
+After changing code in production mode, stop the running server, run `npm run build`, and run `npm start` again. Rebuilding alone updates the page assets but leaves the running server on its previous code. Use `npm run dev` during development to reload both automatically.
+
 ## What is included
 
 - Live public-table discovery, search, private tables, room codes, and invitation links.
@@ -31,7 +33,8 @@ Both modes serve the website and WebSocket connection from one port. The product
 - All v1.0 rules: configurable 0–12/13/14/15 decks, both 200-point victory modes, Draw/Bank, Prediction, Flip Three, Second Chance, frozen duplicates, stacking multipliers, both combinations, 7–10-card bonuses, roulette, tied endings, rotating first seats, and deck recycling.
 - A responsive game table with every player’s hand, clear effect prompts, score breakdowns, standings, round history, table chat, and rematches.
 - Guest play plus optional username/password accounts on this server. Accounts preserve profile, appearance, and completed-game stats across devices. Guests keep the same data while their session cookie remains valid.
-- Eight avatar colors, three card designs, optional sound effects, reduced-motion support, keyboard-operable dialogs, and a built-in rulebook.
+- Three complete UI themes: **Neon Arcade** (default), **Velvet Club**, and **Lucky Pop**. Use the palette button in the header to apply and save a theme instantly, or choose one in your profile. Your theme is personal to you and persists with your guest session or account; existing profiles receive Neon Arcade without losing their data.
+- Eight avatar colors, three independent card designs, optional sound effects, reduced-motion support, keyboard-operable dialogs, and a built-in rulebook. All three app themes cover the lobby, table setup, live game, results, stats, profiles, and rules, with responsive layouts for phones.
 - Automatic reconnect, saved seats, durable games, disconnect handling, host transfer, version checks, command deduplication, and server-owned randomness.
 
 ## Configuration and saved data

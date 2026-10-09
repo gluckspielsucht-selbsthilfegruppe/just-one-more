@@ -12,6 +12,7 @@ import {
   Hash,
   LoaderCircle,
   LockKeyhole,
+  Palette,
   Plus,
   Search,
   Settings2,
@@ -29,14 +30,18 @@ import { api, useGame } from './useGame';
 import { Avatar, HeroCards, Mark, Modal, Sunburst } from './components/ui';
 import { Rules } from './components/Rules';
 import { Lobby, Table } from './components/Table';
+import { AppearanceDialog, AppearancePicker } from './components/Appearance';
+import { APPEARANCES, readCachedAppearance } from './appearance';
 
-type ModalName = 'create' | 'join' | 'rules' | 'profile' | 'settings' | 'leave' | null;
+type ModalName =
+  'create' | 'join' | 'rules' | 'profile' | 'settings' | 'leave' | 'appearance' | null;
 export type Command = (type: string, payload?: Record<string, unknown>) => Promise<void>;
 export default function App() {
   const game = useGame();
   const [modal, setModal] = useState<ModalName>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
+  const [appearanceError, setAppearanceError] = useState('');
   const [sound, setSound] = useState(localStorage.getItem('jom-sound') === 'true');
   const [roomFilter, setRoomFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -45,6 +50,17 @@ export default function App() {
   const audio = useRef<AudioContext | null>(null);
   const lastEvent = useRef('');
   const room = game.room;
+  const [initialAppearance] = useState(readCachedAppearance);
+  const appearance = game.profile?.appearance ?? initialAppearance;
+  const appearanceName = APPEARANCES.find((a) => a.id === appearance)!.name;
+  useEffect(() => {
+    document.documentElement.dataset.appearance = appearance;
+    try {
+      localStorage.setItem('jom-appearance', appearance);
+    } catch {
+      /* The server still saves the choice. */
+    }
+  }, [appearance]);
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [room?.code, room?.round, room?.phase, tab]);
@@ -112,6 +128,26 @@ export default function App() {
     }
   }
   const send: Command = (type, payload) => perform(() => game.command(type, payload));
+  async function saveAppearance(next: Profile['appearance']) {
+    if (busy || !game.profile) return;
+    setBusy(true);
+    setAppearanceError('');
+    try {
+      await api('profile', {
+        name: game.profile.name,
+        color: game.profile.color,
+        theme: game.profile.theme,
+        appearance: next,
+      });
+      notify(`${APPEARANCES.find((a) => a.id === next)!.name} saved. Make yourself at home.`);
+    } catch (error) {
+      setAppearanceError(
+        error instanceof Error ? error.message : 'Could not save your theme. Please try again.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   async function practice() {
     await game.command('create', {
       name: 'A little practice',
@@ -136,7 +172,7 @@ export default function App() {
       `${r.name} ${r.code} ${r.hostName}`.toLowerCase().includes(search.toLowerCase()),
   );
   return (
-    <div className={`app theme-${game.profile?.theme ?? 'classic'}`}>
+    <div className={`app appearance-${appearance} theme-${game.profile?.theme ?? 'classic'}`}>
       <aside className="rail">
         <a
           href="/"
@@ -179,6 +215,15 @@ export default function App() {
         <div className="rail-bottom">
           <button
             className="rail-button"
+            title="Choose app theme"
+            aria-label="Choose app theme"
+            disabled={!game.profile}
+            onClick={() => setModal('appearance')}
+          >
+            <Palette size={21} />
+          </button>
+          <button
+            className="rail-button"
             title={sound ? 'Mute sound' : 'Enable sound'}
             aria-label={sound ? 'Mute sound' : 'Enable sound'}
             onClick={toggleSound}
@@ -215,7 +260,19 @@ export default function App() {
             <button onClick={() => setModal('rules')}>
               How to play <ArrowUpRight size={13} />
             </button>
+            <button className={tab === 'stats' ? 'active' : ''} onClick={() => setTab('stats')}>
+              Your stats
+            </button>
           </nav>
+          <button
+            className="appearance-trigger"
+            onClick={() => setModal('appearance')}
+            aria-label={`Choose app theme, current theme: ${appearanceName}`}
+            disabled={!game.profile}
+          >
+            <Palette size={17} />
+            <span>{appearanceName}</span>
+          </button>
           <button className="profile-button" onClick={() => setModal('profile')}>
             <Avatar player={game.profile ?? { name: '?', color: 'sage' }} />
             <span>{game.profile?.name ?? 'Getting ready…'}</span>
@@ -292,15 +349,24 @@ export default function App() {
                     <span className="tiny-line" /> GOOD CARDS. GREAT COMPANY.
                   </div>
                   <h1>
-                    A little luck.
-                    <br />A lot of{' '}
-                    <span>
-                      nerve
-                      <svg viewBox="0 0 210 16" preserveAspectRatio="none">
-                        <path d="M3 10 Q90 0 204 7 M12 15 Q100 5 189 12" />
-                      </svg>
-                    </span>
-                    .
+                    {appearance === 'neon' ? (
+                      <>
+                        Feeling
+                        <br />
+                        <span>lucky?</span>
+                      </>
+                    ) : appearance === 'pop' ? (
+                      <>
+                        One more?
+                        <br />
+                        <span>Oh, go on.</span>
+                      </>
+                    ) : (
+                      <>
+                        A little luck.
+                        <br />A lot of <span>nerve.</span>
+                      </>
+                    )}
                   </h1>
                   <p>
                     Draw a card. Push your luck. Know when to stop.
@@ -522,6 +588,18 @@ export default function App() {
         </div>
       )}
       {modal === 'rules' && <Rules onClose={() => setModal(null)} />}
+      {modal === 'appearance' && game.profile && (
+        <AppearanceDialog
+          value={appearance}
+          busy={busy}
+          error={appearanceError}
+          onClose={() => {
+            setAppearanceError('');
+            setModal(null);
+          }}
+          onChange={(next) => void saveAppearance(next)}
+        />
+      )}
       {modal === 'create' && game.profile && (
         <CreateTable
           profile={game.profile}
@@ -869,6 +947,7 @@ function ProfileDialog({
   const [name, setName] = useState(profile.name);
   const [color, setColor] = useState(profile.color);
   const [theme, setTheme] = useState(profile.theme);
+  const [appearance, setAppearance] = useState(profile.appearance);
   const [busy, setBusy] = useState(false);
   const [auth, setAuth] = useState<'register' | 'login' | null>(null);
   const [username, setUsername] = useState('');
@@ -971,7 +1050,7 @@ function ProfileDialog({
             onSubmit={(e) => {
               e.preventDefault();
               void run(async () => {
-                await api('profile', { name, color, theme });
+                await api('profile', { name, color, theme, appearance });
                 notify('Looking good. Your profile is saved.');
                 onClose();
               });
@@ -1005,6 +1084,10 @@ function ProfileDialog({
               </div>
             </div>
             <div className="form-field">
+              <label>App theme</label>
+              <AppearancePicker value={appearance} onChange={setAppearance} disabled={busy} />
+            </div>
+            <div className="form-field">
               <label>Card design</label>
               <div className="option-grid three">
                 {(['classic', 'midnight', 'mint'] as const).map((t) => (
@@ -1013,6 +1096,7 @@ function ProfileDialog({
                     key={t}
                     className={`theme-option ${t} ${theme === t ? 'chosen' : ''}`}
                     onClick={() => setTheme(t)}
+                    aria-pressed={theme === t}
                   >
                     <span>7</span>
                     {t === 'classic' ? 'Daydream' : t === 'midnight' ? 'After hours' : 'Fresh mint'}

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApplication } from '../server/app';
@@ -227,7 +227,7 @@ describe('four-player real-time server', () => {
     const a = await connect('Alice');
     const saved = await request(
       'profile',
-      { name: 'Ace Alice', color: 'lavender', theme: 'midnight' },
+      { name: 'Ace Alice', color: 'lavender', theme: 'midnight', appearance: 'velvet' },
       a.cookie,
     );
     expect(saved.ok).toBe(true);
@@ -242,6 +242,7 @@ describe('four-player real-time server', () => {
     expect(user.profile.account).toBe(true);
     expect(user.profile.name).toBe('Ace Alice');
     expect(user.profile.theme).toBe('midnight');
+    expect(user.profile.appearance).toBe('velvet');
     const stored = application.store.data.users[user.profile.id];
     expect(stored.password).not.toBe('test-password-only');
     expect(stored.salt).toBeTruthy();
@@ -256,7 +257,82 @@ describe('four-player real-time server', () => {
       password: 'test-password-only',
     });
     expect(login.ok).toBe(true);
-    expect((await login.json()).profile.id).toBe(user.profile.id);
+    expect((await login.json()).profile).toMatchObject({
+      id: user.profile.id,
+      appearance: 'velvet',
+      theme: 'midnight',
+    });
+  });
+  it('saves all app themes independently per player without changing their game or card design', async () => {
+    const a = await connect('Alice');
+    const b = await connect('Bob');
+    expect(a.state.profile.appearance).toBe('neon');
+    await a.request('create', { name: 'Theme table', settings: DEFAULT_SETTINGS });
+    await b.request('join', { code: a.state.room!.code });
+    await b.request('ready');
+    await a.request('start');
+    const before = structuredClone(a.state.room!);
+    for (const appearance of ['velvet', 'pop', 'neon'] as const) {
+      const res = await request(
+        'profile',
+        { name: 'Alice', color: a.state.profile.color, theme: 'midnight', appearance },
+        a.cookie,
+      );
+      expect(res.ok).toBe(true);
+      await until(() => a.state.profile.appearance === appearance);
+      const reloaded = await (await request('bootstrap', undefined, a.cookie)).json();
+      expect(reloaded.profile).toMatchObject({ appearance, theme: 'midnight' });
+      expect(b.state.profile.appearance).toBe('neon');
+      expect(a.state.room).toMatchObject({
+        phase: before.phase,
+        round: before.round,
+        turnId: before.turnId,
+        players: before.players,
+      });
+    }
+    const invalid = await request(
+      'profile',
+      { name: 'Alice', color: a.state.profile.color, theme: 'midnight', appearance: 'unknown' },
+      a.cookie,
+    );
+    expect(invalid.status).toBe(400);
+    expect(a.state.profile.appearance).toBe('neon');
+    await request(
+      'profile',
+      { name: 'Alice', color: a.state.profile.color, theme: 'midnight', appearance: 'pop' },
+      a.cookie,
+    );
+    const legacyRequest = await request(
+      'profile',
+      { name: 'Alice', color: a.state.profile.color, theme: 'mint' },
+      a.cookie,
+    );
+    expect((await legacyRequest.json()).profile).toMatchObject({
+      appearance: 'pop',
+      theme: 'mint',
+    });
+  });
+  it('loads older saved profiles with Neon Arcade while preserving their existing data', async () => {
+    await application.close();
+    const directory = mkdtempSync(join(tmpdir(), 'jom-theme-migration-'));
+    try {
+      const dataFile = join(directory, 'game.json');
+      application = createApplication({ dataFile });
+      await listen();
+      const a = await connect('Alice');
+      const original = structuredClone(a.state.profile);
+      await application.close();
+      const oldData = JSON.parse(readFileSync(dataFile, 'utf8'));
+      delete oldData.users[original.id].appearance;
+      writeFileSync(dataFile, JSON.stringify(oldData));
+      application = createApplication({ dataFile });
+      await listen();
+      const restored = await connect('Alice', a.cookie);
+      expect(restored.state.profile).toEqual(original);
+    } finally {
+      await application.close();
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
   it('persists sessions, rooms, used cards, and departed seats across a server restart', async () => {
     await application.close();
@@ -267,6 +343,11 @@ describe('four-player real-time server', () => {
       await listen();
       const a = await connect('Alice');
       const b = await connect('Bob');
+      await request(
+        'profile',
+        { name: 'Bob', color: b.state.profile.color, theme: 'classic', appearance: 'pop' },
+        b.cookie,
+      );
       await a.request('create', { name: 'Persistent table', settings: DEFAULT_SETTINGS });
       await b.request('join', { code: a.state.room!.code });
       await b.request('ready');
@@ -280,6 +361,7 @@ describe('four-player real-time server', () => {
       application = createApplication({ dataFile });
       await listen();
       const again = await connect('Bob', b.cookie);
+      expect(again.state.profile.appearance).toBe('pop');
       expect(again.state.room!.code).toBe(code);
       expect(again.state.room!.round).toBe(before.round);
       expect(again.state.room!.hostId).toBe(again.state.profile.id);

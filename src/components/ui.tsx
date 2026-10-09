@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X, Bot, Crown, Snowflake, ShieldCheck, Sparkles, Layers3, Eye } from 'lucide-react';
 import type { Card, Player } from '../../shared/types';
 
@@ -53,6 +53,7 @@ export function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
@@ -62,6 +63,7 @@ export function Modal({
     <dialog
       ref={ref}
       className={`modal ${wide ? 'wide' : ''}`}
+      aria-labelledby={titleId}
       onCancel={onClose}
       onClick={(e) => {
         if (e.target === ref.current) {
@@ -78,7 +80,7 @@ export function Modal({
     >
       <div className="modal-head">
         <div>
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           {subtitle && <p>{subtitle}</p>}
         </div>
         <button className="icon-button" aria-label="Close dialog" onClick={onClose}>
