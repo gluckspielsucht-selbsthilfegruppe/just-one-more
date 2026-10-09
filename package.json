@@ -15,16 +15,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lwoellhafsprinteins/just-one-more.git"
+    "url": "git+https://github.com/gluckspielsucht-selbsthilfegruppe/just-one-more.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/lwoellhafsprinteins/just-one-more/issues"
+    "url": "https://github.com/gluckspielsucht-selbsthilfegruppe/just-one-more/issues"
   },
-  "homepage": "https://github.com/lwoellhafsprinteins/just-one-more#readme",
+  "homepage": "https://github.com/gluckspielsucht-selbsthilfegruppe/just-one-more#readme",
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
