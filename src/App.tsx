@@ -590,9 +590,7 @@ export default function App() {
         </div>
       )}
       {modal === 'rules' && <Rules onClose={() => setModal(null)} />}
-      {modal === 'audio' && (
-        <AudioControls audio={audio} appearance={appearance} onClose={() => setModal(null)} />
-      )}
+      {modal === 'audio' && <AudioControls audio={audio} onClose={() => setModal(null)} />}
       {modal === 'appearance' && game.profile && (
         <AppearanceDialog
           value={appearance}

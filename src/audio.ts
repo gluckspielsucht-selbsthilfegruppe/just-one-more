@@ -1,12 +1,45 @@
 import type { Profile } from '../shared/types';
 
 export type SoundCue = 'draw' | 'bank' | 'bust' | 'special' | 'win' | 'turn' | 'tick';
-export type AudioSettings = { music: boolean; effects: boolean; volume: number };
 export const SOUNDTRACKS = {
-  neon: { title: 'Midnight Circuit', style: 'Soft synths · steady groove', bpm: 104 },
-  velvet: { title: 'The After Hours', style: 'Warm keys · laid-back lounge', bpm: 82 },
-  pop: { title: 'Pocketful of Sunshine', style: 'Playful plucks · easy disco', bpm: 112 },
+  neon: {
+    name: 'Synthwave',
+    title: 'Midnight Circuit',
+    style: 'Soft synths · steady groove',
+    bpm: 104,
+  },
+  velvet: {
+    name: 'Lounge',
+    title: 'The After Hours',
+    style: 'Warm keys · laid-back lounge',
+    bpm: 82,
+  },
+  pop: {
+    name: 'Disco',
+    title: 'Pocketful of Sunshine',
+    style: 'Playful plucks · easy disco',
+    bpm: 112,
+  },
 };
+export type MusicStyle = keyof typeof SOUNDTRACKS;
+export type AudioSettings = {
+  music: boolean;
+  effects: boolean;
+  volume: number;
+  style: 'theme' | MusicStyle;
+};
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  music: false,
+  effects: false,
+  volume: 0.35,
+  style: 'theme',
+};
+export function resolveSoundtrack(
+  style: AudioSettings['style'],
+  appearance: Profile['appearance'],
+): MusicStyle {
+  return style === 'theme' ? appearance : style;
+}
 export function readAudioSettings(): AudioSettings {
   try {
     const saved = JSON.parse(localStorage.getItem('jom-audio') ?? 'null');
@@ -20,9 +53,13 @@ export function readAudioSettings(): AudioSettings {
         typeof saved?.volume === 'number' && Number.isFinite(saved.volume)
           ? Math.max(0, Math.min(1, saved.volume))
           : 0.35,
+      style:
+        saved?.style === 'neon' || saved?.style === 'velvet' || saved?.style === 'pop'
+          ? saved.style
+          : 'theme',
     };
   } catch {
-    return { music: false, effects: false, volume: 0.35 };
+    return { ...DEFAULT_AUDIO_SETTINGS };
   }
 }
 const frequency = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -58,8 +95,8 @@ export class GameAudio {
   private next = 0;
   private step = 0;
   private visible = true;
-  private settings: AudioSettings = { music: false, effects: false, volume: 0.35 };
-  private appearance: Profile['appearance'] = 'neon';
+  private settings: AudioSettings = { ...DEFAULT_AUDIO_SETTINGS };
+  private soundtrack: MusicStyle = 'neon';
 
   async unlock() {
     if (!this.context) {
@@ -87,9 +124,10 @@ export class GameAudio {
     return context.state === 'running';
   }
   configure(settings: AudioSettings, appearance: Profile['appearance']) {
-    if (appearance !== this.appearance) {
+    const soundtrack = resolveSoundtrack(settings.style, appearance);
+    if (soundtrack !== this.soundtrack) {
       this.stopMusic();
-      this.appearance = appearance;
+      this.soundtrack = soundtrack;
       this.step = 0;
     }
     this.settings = settings;
@@ -199,7 +237,7 @@ export class GameAudio {
   }
   private schedule() {
     const ctx = this.context!;
-    const theme = this.appearance;
+    const theme = this.soundtrack;
     const beat = 60 / SOUNDTRACKS[theme].bpm;
     // Recover from a sleeping event loop without queueing a burst of missed notes.
     if (this.next < ctx.currentTime) this.next = ctx.currentTime + 0.02;
