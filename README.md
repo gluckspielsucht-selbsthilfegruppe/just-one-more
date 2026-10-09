@@ -2,6 +2,25 @@
 
 A browser-based, real-time push-your-luck card game for 2–8 players. Draw another card, bank your points, or risk the whole round on roulette. Built from the candidate v1.0 in [game-rules.md](game-rules.md).
 
+## Quick start
+
+Run one of these options from the project directory:
+
+- **Docker** (requires Docker with Compose): `docker compose up --build -d`.
+- **Node.js** (requires Node.js 22.12+ and npm): `npm ci && npm run dev`.
+
+Open **http://localhost:3000**, then choose **Create a table** to play with friends or **Play a practice game** to try it with bots. Friends on the same Wi-Fi use your computer's LAN IP instead of `localhost`.
+
+**Playing over the internet?** With Docker, run:
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml up --build tunnel
+```
+
+Everyone, including you, opens the `https://….trycloudflare.com` URL printed in the terminal. Create a table there and share its invitation link. Keep the terminal open and your computer awake while playing. See [Quick Tunnel details](#play-over-the-internet-with-a-quick-tunnel).
+
+To stop: press **Ctrl+C** for Node.js or the foreground tunnel; run `docker compose down` for local Docker, or `docker compose -f compose.yaml -f compose.tunnel.yaml down` for both the app and tunnel. Saved Docker data is retained.
+
 ## Start playing
 
 Requires **Node.js 22.12 or later** and npm.
