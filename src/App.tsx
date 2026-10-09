@@ -25,7 +25,7 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import type { Profile, PublicRoom, RoomSettings } from '../shared/types';
+import { CARD_DESIGNS, type Profile, type PublicRoom, type RoomSettings } from '../shared/types';
 import { DEFAULT_SETTINGS, COLORS } from '../shared/engine';
 import { api, useGame } from './useGame';
 import { Avatar, HeroCards, Mark, Modal, Sunburst } from './components/ui';
@@ -39,6 +39,14 @@ import { AudioControls } from './components/AudioControls';
 type ModalName =
   'create' | 'join' | 'rules' | 'profile' | 'settings' | 'leave' | 'appearance' | 'audio' | null;
 export type Command = (type: string, payload?: Record<string, unknown>) => Promise<void>;
+const CARD_DESIGN_NAMES: Record<Profile['theme'], string> = {
+  classic: 'Daydream',
+  midnight: 'After hours',
+  mint: 'Fresh mint',
+  prism: 'Prism Foil',
+  gilded: 'Black Gold',
+  aurora: 'Aurora Glass',
+};
 export default function App() {
   const game = useGame();
   const [modal, setModal] = useState<ModalName>(null);
@@ -1092,8 +1100,8 @@ function ProfileDialog({
             </div>
             <div className="form-field">
               <label>Card design</label>
-              <div className="option-grid three">
-                {(['classic', 'midnight', 'mint'] as const).map((t) => (
+              <div className="option-grid three card-theme-grid">
+                {CARD_DESIGNS.map((t) => (
                   <button
                     type="button"
                     key={t}
@@ -1101,8 +1109,8 @@ function ProfileDialog({
                     onClick={() => setTheme(t)}
                     aria-pressed={theme === t}
                   >
-                    <span>7</span>
-                    {t === 'classic' ? 'Daydream' : t === 'midnight' ? 'After hours' : 'Fresh mint'}
+                    <span aria-hidden="true">7</span>
+                    <strong>{CARD_DESIGN_NAMES[t]}</strong>
                   </button>
                 ))}
               </div>

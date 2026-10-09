@@ -482,6 +482,26 @@ describe('four-player real-time server', () => {
       theme: 'mint',
     });
   });
+  it('saves and validates the foil card designs', async () => {
+    const player = await connect('Alice');
+    for (const theme of ['prism', 'gilded', 'aurora'] as const) {
+      const saved = await request(
+        'profile',
+        { name: 'Alice', color: player.state.profile.color, theme },
+        player.cookie,
+      );
+      expect(saved.ok).toBe(true);
+      expect((await saved.json()).profile.theme).toBe(theme);
+      const reloaded = await request('bootstrap', undefined, player.cookie);
+      expect((await reloaded.json()).profile.theme).toBe(theme);
+    }
+    const invalid = await request(
+      'profile',
+      { name: 'Alice', color: player.state.profile.color, theme: 'foil' },
+      player.cookie,
+    );
+    expect(invalid.status).toBe(400);
+  });
   it('loads older saved profiles with Neon Arcade while preserving their existing data', async () => {
     await application.close();
     const directory = mkdtempSync(join(tmpdir(), 'jom-theme-migration-'));
