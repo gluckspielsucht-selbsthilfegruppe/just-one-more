@@ -77,8 +77,13 @@ export function shuffle<T>(items: T[], random: Random): T[] {
   }
   return result;
 }
-export function log(room: Room, text: string, type: Room['events'][number]['type'] = 'info') {
-  room.events.push({ id: ++room.eventSequence, text, type });
+export function log(
+  room: Room,
+  text: string,
+  type: Room['events'][number]['type'] = 'info',
+  moment?: Pick<Room['events'][number], 'playerId' | 'moment'>,
+) {
+  room.events.push({ id: ++room.eventSequence, text, type, ...moment });
   room.events = room.events.slice(-80);
 }
 function active(room: Room) {
@@ -165,6 +170,7 @@ function receive(room: Room, player: Player, card: Card, guess?: number) {
           room,
           `Right on! ${player.name} predicted ${card.value} and now has ×${player.predictionMultiplier}.`,
           'special',
+          { playerId: player.id, moment: 'prediction-hit' },
         );
       } else {
         for (const held of player.hand) {
@@ -189,7 +195,10 @@ function receive(room: Room, player: Player, card: Card, guess?: number) {
         player.hand.push(card);
         player.status = 'busted';
         player.roundScore = 0;
-        log(room, `${player.name} busted on a duplicate ${card.value}.`, 'bust');
+        log(room, `${player.name} busted on a duplicate ${card.value}.`, 'bust', {
+          playerId: player.id,
+          moment: 'bust',
+        });
       }
     } else player.hand.push(card);
     if (player.status === 'active' && scoreHand(player).count >= 10)
@@ -334,6 +343,10 @@ function bank(room: Room, player: Player, roulette: boolean, random: Random) {
       ? `${player.name} took roulette: ×${player.roulette}! ${player.roundScore} points banked.`
       : `${player.name} banked ${player.roundScore} points.`,
     'bank',
+    {
+      playerId: player.id,
+      moment: roulette ? (player.roulette === 0 ? 'roulette-loss' : 'roulette-win') : 'bank',
+    },
   );
 }
 export function applyAction(
