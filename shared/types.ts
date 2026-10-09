@@ -109,6 +109,7 @@ export interface Profile {
   name: string;
   color: string;
   theme: 'classic' | 'midnight' | 'mint';
+  appearance: 'neon' | 'velvet' | 'pop';
   account: boolean;
   stats: Stats;
 }

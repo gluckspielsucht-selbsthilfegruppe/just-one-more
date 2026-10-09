@@ -20,6 +20,7 @@ export class Store {
       file && existsSync(file)
         ? JSON.parse(readFileSync(file, 'utf8'))
         : { users: {}, sessions: {}, rooms: {}, completed: [] };
+    for (const user of Object.values(this.data.users)) user.appearance ??= 'neon';
     for (const room of Object.values(this.data.rooms)) {
       room.departedIds ??= [];
       for (const p of room.players) if (!p.bot) p.connected = false;

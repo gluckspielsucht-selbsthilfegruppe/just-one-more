@@ -100,7 +100,8 @@ If the URL does not load, check `docker compose -f compose.yaml -f compose.tunne
 - All v1.0 rules: configurable 0–12/13/14/15 decks, both 200-point victory modes, Draw/Bank, Prediction, Flip Three, Second Chance, frozen duplicates, stacking multipliers, both combinations, 7–10-card bonuses, roulette, tied endings, rotating first seats, and deck recycling.
 - A responsive game table with every player’s hand, clear effect prompts, score breakdowns, standings, round history, table chat, and rematches.
 - Guest play plus optional username/password accounts on this server. Accounts preserve profile, appearance, and completed-game stats across devices. Guests keep the same data while their session cookie remains valid.
-- Eight avatar colors, three card designs, optional sound effects, reduced-motion support, keyboard-operable dialogs, and a built-in rulebook.
+- Three complete UI themes: **Neon Arcade** (default), **Velvet Club**, and **Lucky Pop**. Use the palette button in the header to apply and save a theme instantly, or choose one in your profile. Your theme is personal to you and persists with your guest session or account; existing profiles receive Neon Arcade without losing their data.
+- Eight avatar colors, three independent card designs, optional sound effects, reduced-motion support, keyboard-operable dialogs, and a built-in rulebook. All three app themes cover the lobby, table setup, live game, results, stats, profiles, and rules, with responsive layouts for phones.
 - Automatic reconnect, saved seats, durable games, disconnect handling, host transfer, version checks, command deduplication, and server-owned randomness.
 
 ## Configuration and saved data
