@@ -28,6 +28,38 @@ These are examples; replace the placeholders with the actual task. A clear
 implementation request authorizes the local work and its checks. Codex should
 ask when a new consequential decision is needed, not at every step.
 
+## How the AI workflow works
+
+You give Codex a task in this repository and say what result you expect. Codex
+starts with the rules in `AGENTS.md`, reads only the project files relevant to
+that task, and uses `$team-workflow` when you ask it to plan, run a spike,
+implement a slice, or record a check. The skill tells Codex how to carry out
+the requested stage; it does not start later stages on its own.
+
+For a new feature, the usual path is:
+
+1. **Agree on the target.** Describe the idea and constraints. Ask Codex to
+   propose scope, acceptance criteria, and shared interfaces. The team makes
+   the decisions; the designated engineer asks Codex to write `SPEC.md` once
+   they are agreed.
+2. **Investigate only what is uncertain.** If an important technical question
+   blocks a decision, assign a bounded spike. Codex records what it tried,
+   observed, and concluded in `spikes/`. Skip this step when the approach is
+   clear.
+3. **Build one usable increment.** Assign a slice, branch, and files. Codex
+   implements the agreed outcome, runs relevant checks, and keeps evidence and
+   next steps in the slice file. A later session can resume from that file.
+4. **Review and integrate.** Inspect the change and its checks. The engineer
+   accepts the slice and decides when to push or merge it. Before sharing the
+   integrated result, ask Codex to verify the app on `main` and record
+   cross-slice results in `CHECK.md`.
+
+You can ask for just one step: “plan this”, “run SP-01”, “implement SL-Y1”, or
+“check AC-01”. For a small fix with a clear expected result, skip the project
+documents and ask Codex to make and verify the change directly. Give it the
+reproduction steps or acceptance criterion, plus the branch to use. The
+[prompts below](#prompts) show copyable starting points for each stage.
+
 ## How Codex uses these files
 
 | File | Role | When to read or write |
