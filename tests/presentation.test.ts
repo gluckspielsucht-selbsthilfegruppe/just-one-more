@@ -117,6 +117,10 @@ describe('audio preferences and lifecycle', () => {
         expect(resolveSoundtrack(style, appearance)).toBe(style);
     },
   );
+  it('uses Synthwave when Violet Glow follows the app theme', () => {
+    expect(resolveSoundtrack('theme', 'glow')).toBe('neon');
+    expect(resolveSoundtrack('velvet', 'glow')).toBe('velvet');
+  });
   it('uses one scheduler, pauses in hidden tabs, and releases audio on unmount', async () => {
     vi.useFakeTimers();
     const param = () => ({

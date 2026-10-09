@@ -76,7 +76,8 @@ export function Rules({ onClose }: { onClose: () => void }) {
           <Layers3 />
           <h4>Flip Three</h4>
           <p>
-            Choose an active player to draw three physical cards. Special cards count toward three.
+            Choose any active player, including yourself, to draw three physical cards immediately.
+            Drawing stops if they bust or the round ends. Special cards count toward three.
             Prediction and Flip Three cards drawn in a forced sequence wait until the sequence
             finishes, then resolve in reveal order.
           </p>

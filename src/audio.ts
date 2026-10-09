@@ -38,7 +38,7 @@ export function resolveSoundtrack(
   style: AudioSettings['style'],
   appearance: Profile['appearance'],
 ): MusicStyle {
-  return style === 'theme' ? appearance : style;
+  return style === 'theme' ? (appearance === 'glow' ? 'neon' : appearance) : style;
 }
 export function readAudioSettings(): AudioSettings {
   try {

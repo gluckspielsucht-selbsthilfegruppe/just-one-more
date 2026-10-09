@@ -54,7 +54,7 @@ export function SpecialCardGuide({ reversed = false }: { reversed?: boolean }) {
             <strong>Flip Three</strong>{' '}
             {reversed
               ? 'Pick an active player to discard their three most recent held cards.'
-              : 'Pick an active player to draw up to three cards. Special cards count; any action cards they draw resolve after the sequence.'}
+              : 'Pick any active player, including yourself. They immediately draw three cards, unless they bust or the round ends. Special cards count; action cards resolve afterward.'}
           </p>
         </div>
         <div>
@@ -104,7 +104,7 @@ export function ActiveEffectHint({
         {flipThree
           ? reversed
             ? 'The chosen player discards their three most recent held cards.'
-            : 'The chosen player draws up to three cards. Special cards count toward the three; action cards resolve afterward.'
+            : 'The chosen player immediately draws three cards, unless they bust or the round ends. Special cards count; action cards resolve afterward.'
           : prompt.kind === 'target'
             ? `Choose any active player to guess their next numbered card. A ${reversed ? 'correct guess' : 'miss'} freezes their numbers.`
             : `Guess your next numbered card. ${reversed ? 'Wrong' : 'Correct'} triples your number sum; ${reversed ? 'correct' : 'wrong'} freezes your numbers and resets existing score modifiers. ${reversed ? 'New numbers' : 'Duplicates'} can still bust you.`}
