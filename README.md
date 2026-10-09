@@ -63,6 +63,8 @@ The suite checks the documented scoring boundaries and tabletop replay, special-
 
 See [docs/verification.md](docs/verification.md) for the browser rehearsal and [docs/decisions.md](docs/decisions.md) for implementation assumptions and the architecture.
 
+The [Spec → Slice → Check workflow](docs/ai-workflow.md) proposes a lightweight development process for three developers using Codex, grounded in this prototype. The [presentation notes](docs/workflow-presentation.md) include a short narrative, a slide outline, and a demo script.
+
 ## Network access and zero cost
 
 Local and LAN operation follow the newer [tech-constraints.md](tech-constraints.md). This implementation does **not** provision Cloudflare, a tunnel, a paid plan, or a trial. There are no usage fees or automatic upgrades. Stop the terminal process with Ctrl+C to stop the service; the saved data remains local.
