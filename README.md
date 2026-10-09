@@ -32,6 +32,8 @@ npm run dev
 
 Open **http://localhost:3000**. Choose **Create a table**, enter a nickname, and invite your friends. For a solo demonstration, **Play a practice game** immediately starts a four-seat game with three bots. No account, API key, database setup, or paid service is required.
 
+During a solo bot game, the host can press **Trigger AI Hackathon** above the table to reveal the card immediately. The button uses the real card from the deck or prior-round discards, plays its shared animation, and disappears once reverse mode is active. It is unavailable in games with multiple human players.
+
 The server prints a network URL, such as `http://192.168.1.42:3000`. Other devices on the **same local network** open that URL. Create your table from the network URL to copy an invitation link that works for everyone. The five-character room code also works from any browser connected to the same server. Each player uses a separate device, browser profile, or private browsing session; tabs in the same profile share an identity.
 
 Use **production mode** for a presentation:
