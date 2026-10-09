@@ -7,6 +7,7 @@ import '@fontsource/barlow-condensed/800.css';
 import '@fontsource/dm-serif-display/400.css';
 import './styles.css';
 import './themes.css';
+import './motion.css';
 import App from './App';
 import { readCachedAppearance } from './appearance';
 

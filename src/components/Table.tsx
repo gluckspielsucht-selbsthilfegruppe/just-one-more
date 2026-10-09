@@ -24,7 +24,11 @@ import {
 import { scoreHand } from '../../shared/scoring';
 import type { Player, Profile, PublicRoom } from '../../shared/types';
 import type { Command } from '../App';
-import { Avatar, Modal, PlayingCard, PlayerStatus, Sunburst } from './ui';
+import { Avatar, PlayingCard, PlayerStatus, Sunburst } from './ui';
+import { RouletteDialog } from './Roulette';
+import { AnimatedNumber, Celebration } from './Motion';
+import { rouletteResult, type RouletteBet } from '../roulette';
+import type { SoundCue } from '../audio';
 
 async function copyText(text: string) {
   if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
@@ -265,12 +269,16 @@ export function Table({
   send,
   busy,
   onRules,
+  onSpin,
+  playSound,
 }: {
   room: PublicRoom;
   profile: Profile;
   send: Command;
   busy: boolean;
   onRules: () => void;
+  onSpin: () => Promise<void>;
+  playSound: (cue: SoundCue) => void;
 }) {
   const me = room.players.find((p) => p.id === profile.id)!;
   const score = scoreHand(me);
@@ -278,7 +286,7 @@ export function Table({
   const actor = room.players.find((p) => p.id === actorId);
   const mine = actorId === profile.id && room.phase === 'playing';
   const host = room.hostId === profile.id;
-  const [roulette, setRoulette] = useState(false);
+  const [roulette, setRoulette] = useState<RouletteBet | null>(null);
   const [guess, setGuess] = useState<number | null>(null);
   const [chat, setChat] = useState('');
   const [activityTab, setActivityTab] = useState<'activity' | 'rounds'>('activity');
@@ -290,7 +298,6 @@ export function Table({
   }, [room.eventSequence, activityTab]);
   useEffect(() => {
     setGuess(null);
-    setRoulette(false);
   }, [room.round, room.phase, room.prompt?.kind]);
   const action = (value: Record<string, unknown>) => send('action', { action: value });
   return (
@@ -356,7 +363,9 @@ export function Table({
                                 : 'At the table'}
                     </span>
                   </div>
-                  <b>{p.total}</b>
+                  <b>
+                    <AnimatedNumber value={p.total} />
+                  </b>
                 </div>
                 <div className="score-progress">
                   <i style={{ width: `${Math.min(100, p.total / 2)}%` }} />
@@ -378,6 +387,7 @@ export function Table({
         <section className="table-center">
           {roundOver ? (
             <div className={`round-result ${room.phase === 'finished' ? 'finished' : ''}`}>
+              {room.phase === 'finished' && <Celebration />}
               <div className="result-symbol">
                 {room.phase === 'finished' ? <Trophy size={30} /> : <Flag size={26} />}
                 <Sunburst />
@@ -419,7 +429,9 @@ export function Table({
                                 ? 'Seven qualified'
                                 : 'Banked'}
                       </span>
-                      <b>+{p.roundScore}</b>
+                      <b>
+                        +<AnimatedNumber value={p.roundScore} />
+                      </b>
                       <small>{p.total} total</small>
                     </div>
                   ))}
@@ -444,7 +456,11 @@ export function Table({
             </div>
           ) : (
             <>
-              <div className={`turn-banner ${mine ? 'your-turn' : ''}`} role="status">
+              <div
+                key={`${room.round}-${actorId}-${room.prompt?.kind ?? 'turn'}`}
+                className={`turn-banner ${mine ? 'your-turn' : ''}`}
+                role="status"
+              >
                 <span className="turn-orb">
                   {mine ? <Sparkles size={17} /> : <LoaderCircle size={17} className="spin-slow" />}
                 </span>
@@ -486,7 +502,7 @@ export function Table({
               </div>
             </>
           )}
-          <div className="your-hand">
+          <div className={`your-hand hand-${me.status}`}>
             <div className="hand-heading">
               <div className="hand-player">
                 <Avatar player={me} />
@@ -498,7 +514,9 @@ export function Table({
                 </div>
               </div>
               <div className="hand-score">
-                <strong>{me.status === 'banked' ? me.roundScore : score.subtotal}</strong>
+                <strong>
+                  <AnimatedNumber value={me.status === 'banked' ? me.roundScore : score.subtotal} />
+                </strong>
                 <span>{me.status === 'banked' ? 'banked' : 'round points'}</span>
               </div>
             </div>
@@ -600,7 +618,14 @@ export function Table({
                     <button
                       className="button roulette-button"
                       disabled={busy}
-                      onClick={() => setRoulette(true)}
+                      onClick={() =>
+                        setRoulette({
+                          gameId: room.gameId,
+                          round: room.round,
+                          points: score.subtotal,
+                          qualified: score.count >= 7 && room.settings.endMode === 'seven',
+                        })
+                      }
                     >
                       <Dices size={20} /> Roulette<span>Double or nothing</span>
                     </button>
@@ -733,57 +758,21 @@ export function Table({
           </div>
         </aside>
       </div>
-      {roulette && mine && (
-        <Modal
-          title="Feeling twice as lucky?"
-          subtitle="One spin. Your whole round on the line."
-          onClose={() => setRoulette(false)}
-        >
-          <div className="roulette-visual">
-            <div className="roulette-half zero">
-              <span>50%</span>
-              <strong>×0</strong>
-              <span>0 points</span>
-            </div>
-            <div className="roulette-half twice">
-              <span>50%</span>
-              <strong>×2</strong>
-              <span>{score.subtotal * 2} points</span>
-            </div>
-            <span className="roulette-center">
-              <Dices size={26} />
-            </span>
-          </div>
-          <p className="roulette-note">
-            Bank safely for <strong>{score.subtotal} points</strong>, or take an equal chance at
-            double or nothing.
-            {score.count >= 7 &&
-              room.settings.endMode === 'seven' &&
-              ' A loss also removes your seven-card qualification.'}
-          </p>
-          <div className="modal-actions">
-            <button
-              className="button secondary"
-              disabled={busy}
-              onClick={() => {
-                setRoulette(false);
-                void action({ type: 'bank', roulette: false });
-              }}
-            >
-              Bank {score.subtotal}
-            </button>
-            <button
-              className="button primary"
-              disabled={busy}
-              onClick={() => {
-                setRoulette(false);
-                void action({ type: 'bank', roulette: true });
-              }}
-            >
-              Spin & bank <Dices size={18} />
-            </button>
-          </div>
-        </Modal>
+      {roulette && (
+        <RouletteDialog
+          bet={roulette}
+          result={rouletteResult(room, profile.id, roulette)}
+          canSpin={
+            mine && !busy && roulette.round === room.round && roulette.gameId === room.gameId
+          }
+          onSpin={onSpin}
+          onBank={() => {
+            setRoulette(null);
+            void action({ type: 'bank', roulette: false });
+          }}
+          onClose={() => setRoulette(null)}
+          playSound={playSound}
+        />
       )}
     </>
   );

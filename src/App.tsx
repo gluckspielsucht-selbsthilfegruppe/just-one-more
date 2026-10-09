@@ -10,6 +10,7 @@ import {
   DoorOpen,
   Gamepad2,
   Hash,
+  Headphones,
   LoaderCircle,
   LockKeyhole,
   Palette,
@@ -32,9 +33,11 @@ import { Rules } from './components/Rules';
 import { Lobby, Table } from './components/Table';
 import { AppearanceDialog, AppearancePicker } from './components/Appearance';
 import { APPEARANCES, readCachedAppearance } from './appearance';
+import { useGameAudio } from './useGameAudio';
+import { AudioControls } from './components/AudioControls';
 
 type ModalName =
-  'create' | 'join' | 'rules' | 'profile' | 'settings' | 'leave' | 'appearance' | null;
+  'create' | 'join' | 'rules' | 'profile' | 'settings' | 'leave' | 'appearance' | 'audio' | null;
 export type Command = (type: string, payload?: Record<string, unknown>) => Promise<void>;
 export default function App() {
   const game = useGame();
@@ -42,17 +45,17 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   const [appearanceError, setAppearanceError] = useState('');
-  const [sound, setSound] = useState(localStorage.getItem('jom-sound') === 'true');
   const [roomFilter, setRoomFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('play');
   const inviteHandled = useRef(false);
-  const audio = useRef<AudioContext | null>(null);
   const lastEvent = useRef('');
   const room = game.room;
   const [initialAppearance] = useState(readCachedAppearance);
   const appearance = game.profile?.appearance ?? initialAppearance;
   const appearanceName = APPEARANCES.find((a) => a.id === appearance)!.name;
+  const audio = useGameAudio(appearance);
+  const sound = audio.settings.effects;
   useEffect(() => {
     document.documentElement.dataset.appearance = appearance;
     try {
@@ -65,15 +68,6 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [room?.code, room?.round, room?.phase, tab]);
   const notify = (message: string) => setToast(message);
-  useEffect(() => {
-    if (!sound) return;
-    const enable = () => {
-      audio.current ??= new AudioContext();
-      void audio.current.resume().catch(() => {});
-    };
-    window.addEventListener('pointerdown', enable, { once: true });
-    return () => window.removeEventListener('pointerdown', enable);
-  }, [sound]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 5000);
@@ -97,25 +91,21 @@ export default function App() {
       : 'Just One More — A little luck. A lot of nerve.';
   }, [room?.code]);
   useEffect(() => {
-    const event = room?.events.at(-1);
-    if (!event) return;
-    const key = `${room!.code}-${event.id}`;
-    if (lastEvent.current === key) return;
-    lastEvent.current = key;
-    if (!sound || !audio.current) return;
-    const context = audio.current;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.type = 'sine';
-    oscillator.frequency.value =
-      event.type === 'bust' ? 160 : event.type === 'win' ? 880 : event.type === 'bank' ? 660 : 440;
-    gain.gain.setValueAtTime(0.045, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.14);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.15);
-  }, [room?.eventSequence, sound]);
+    if (!room) {
+      lastEvent.current = '';
+      return;
+    }
+    const key = `${room.gameId}:${room.code}`;
+    const [previousKey, previousSequence] = lastEvent.current.split('|');
+    lastEvent.current = `${key}|${room.eventSequence}`;
+    if (previousKey !== key) return;
+    const fresh = room.events.filter((e) => e.id > Number(previousSequence));
+    // The wheel reveals its own outcome after the spin, including a game-ending bank.
+    if (fresh.some((e) => e.text.includes('took roulette'))) return;
+    const event =
+      fresh.find((e) => e.type === 'win') ?? fresh.find((e) => e.type === 'bust') ?? fresh.at(-1);
+    if (event && event.type !== 'info') audio.play(event.type);
+  }, [room?.gameId, room?.code, room?.eventSequence, audio.play]);
   async function perform(action: () => Promise<void>) {
     if (busy) return;
     setBusy(true);
@@ -157,12 +147,7 @@ export default function App() {
     await game.command('start');
   }
   function toggleSound() {
-    if (!sound) {
-      audio.current ??= new AudioContext();
-      void audio.current.resume();
-    }
-    setSound(!sound);
-    localStorage.setItem('jom-sound', String(!sound));
+    audio.update({ effects: !sound });
   }
   const online = game.connection === 'connected';
   const filteredRooms = game.rooms.filter(
@@ -224,8 +209,8 @@ export default function App() {
           </button>
           <button
             className="rail-button"
-            title={sound ? 'Mute sound' : 'Enable sound'}
-            aria-label={sound ? 'Mute sound' : 'Enable sound'}
+            title={sound ? 'Mute game effects' : 'Enable game effects'}
+            aria-label={sound ? 'Mute game effects' : 'Enable game effects'}
             onClick={toggleSound}
           >
             {sound ? <Volume2 size={20} /> : <VolumeX size={20} />}
@@ -272,6 +257,19 @@ export default function App() {
           >
             <Palette size={17} />
             <span>{appearanceName}</span>
+          </button>
+          <button
+            className={`audio-trigger ${audio.settings.music && audio.unlocked ? 'playing' : ''}`}
+            aria-label="Music and sound settings"
+            title="Music and sound"
+            onClick={() => setModal('audio')}
+          >
+            <Headphones size={18} />
+            <span className="mini-equalizer" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
           </button>
           <button className="profile-button" onClick={() => setModal('profile')}>
             <Avatar player={game.profile ?? { name: '?', color: 'sage' }} />
@@ -338,6 +336,10 @@ export default function App() {
                   send={send}
                   busy={busy || !online}
                   onRules={() => setModal('rules')}
+                  onSpin={() =>
+                    game.command('action', { action: { type: 'bank', roulette: true } })
+                  }
+                  playSound={audio.play}
                 />
               )}
             </>
@@ -588,6 +590,9 @@ export default function App() {
         </div>
       )}
       {modal === 'rules' && <Rules onClose={() => setModal(null)} />}
+      {modal === 'audio' && (
+        <AudioControls audio={audio} appearance={appearance} onClose={() => setModal(null)} />
+      )}
       {modal === 'appearance' && game.profile && (
         <AppearanceDialog
           value={appearance}
@@ -1118,7 +1123,8 @@ function ProfileDialog({
               <Trophy size={15} /> View your stats
             </button>
             <button className="text-button" onClick={toggleSound}>
-              {sound ? <Volume2 size={15} /> : <VolumeX size={15} />} Sound {sound ? 'on' : 'off'}
+              {sound ? <Volume2 size={15} /> : <VolumeX size={15} />} Game effects{' '}
+              {sound ? 'on' : 'off'}
             </button>
           </div>
           {!inRoom && (

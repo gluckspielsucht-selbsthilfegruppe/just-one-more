@@ -1,0 +1,844 @@
+/* Motion follows the selected palette and never changes the game's timing or odds. */
+.app .hero-art {
+  animation: art-arrive 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.app .hero-art .art-spark {
+  animation: sparkle-turn 7s ease-in-out infinite;
+}
+.app .hero-sticker {
+  animation: sticker-bob 4s ease-in-out infinite;
+}
+.app .hero-copy,
+.app .lobby-heading {
+  animation: panel-arrive 650ms ease-out both;
+}
+.app .room-card,
+.app .seat {
+  animation: panel-arrive 450ms ease-out both;
+}
+.app .button {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+.app .button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.app .button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+.app .hand-cards {
+  perspective: 900px;
+}
+.app .hand-cards .playing-card {
+  animation: card-arrive 560ms cubic-bezier(0.18, 0.85, 0.28, 1.16) both;
+  transform-origin: 50% 100%;
+}
+.app .opponent-cards .playing-card {
+  animation: card-arrive 400ms ease-out both;
+}
+.app .turn-banner {
+  animation: panel-arrive 380ms ease-out both;
+}
+.app .turn-banner.your-turn .turn-orb {
+  animation: turn-pulse 2.6s ease-in-out 3;
+}
+.app .count-dots .filled {
+  animation: dot-pop 340ms cubic-bezier(0.2, 1.7, 0.5, 1) both;
+}
+.app .combo-message,
+.app .multiplier-token {
+  animation: bonus-pop 500ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.app .hand-banked .hand-score {
+  animation: bank-glow 850ms ease-out;
+}
+.app .hand-busted .hand-cards {
+  animation: hand-bust 480ms ease-out;
+}
+.app .score-progress > i {
+  transition: width 750ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.animated-number {
+  font-variant-numeric: tabular-nums;
+}
+.app .round-result {
+  position: relative;
+  isolation: isolate;
+  animation: panel-arrive 600ms ease-out both;
+}
+.app .result-symbol {
+  animation: bonus-pop 750ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.app .modal[open] {
+  animation: dialog-arrive 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.app .modal::backdrop {
+  animation: backdrop-arrive 200ms ease-out both;
+}
+.celebration {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+  border-radius: inherit;
+}
+.celebration i {
+  position: absolute;
+  left: var(--x);
+  top: -14px;
+  width: 7px;
+  height: 13px;
+  background: var(--orange);
+  animation: confetti-fall 2.8s var(--delay) cubic-bezier(0.1, 0.5, 0.4, 1) both;
+}
+.celebration i:nth-child(3n) {
+  background: var(--hot);
+  border-radius: 50%;
+  width: 9px;
+  height: 9px;
+}
+.celebration i:nth-child(3n + 1) {
+  background: var(--ink);
+}
+
+/* Roulette: a physical wheel, a separate ball track, and equal alternating pockets. */
+.app .roulette-modal {
+  width: min(570px, calc(100vw - 24px));
+  padding: 26px;
+}
+.app .roulette-modal .modal-head {
+  margin-bottom: 18px;
+}
+.app .roulette-modal .modal-head h2 {
+  font-size: 34px;
+  line-height: 1.08;
+}
+.app .roulette-modal .modal-head p {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--orange);
+  margin-top: 9px;
+}
+.roulette-show {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 15px 20px 17px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: radial-gradient(
+    ellipse at 50% 42%,
+    color-mix(in srgb, var(--orange) 12%, var(--surface)),
+    var(--paper) 75%
+  );
+}
+.roulette-marquee {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.7px;
+  text-align: center;
+}
+.roulette-marquee i {
+  width: 4px;
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 10px var(--orange);
+}
+.roulette-stage {
+  position: relative;
+  width: min(100%, clamp(190px, 34vh, 300px));
+  aspect-ratio: 1;
+  margin: 24px auto 12px;
+}
+.wheel-halo {
+  position: absolute;
+  inset: -18px;
+  border: 1px solid color-mix(in srgb, var(--orange) 20%, transparent);
+  border-radius: 50%;
+}
+.wheel-halo::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed color-mix(in srgb, var(--orange) 28%, transparent);
+  border-radius: 50%;
+}
+.wheel-rim {
+  position: absolute;
+  inset: 0;
+  border: 10px solid var(--raised);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow:
+    0 0 0 1px var(--orange),
+    0 0 0 5px var(--surface),
+    0 12px 30px #0005,
+    inset 0 0 0 2px var(--orange);
+}
+.roulette-wheel {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.12, 0.72, 0.12, 1);
+}
+.roulette-wheel path {
+  stroke: var(--paper);
+  stroke-width: 1.6;
+}
+.pocket-double path {
+  fill: var(--orange);
+}
+.pocket-zero path {
+  fill: var(--raised);
+}
+.roulette-wheel text {
+  dominant-baseline: middle;
+  text-anchor: middle;
+  font-family: 'Space Grotesk Variable', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+}
+.pocket-double text {
+  fill: var(--on-accent);
+}
+.pocket-zero text {
+  fill: var(--ink);
+}
+.wheel-inner-ring {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 2;
+  opacity: 0.65;
+}
+.wheel-hub {
+  position: absolute;
+  inset: 31%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--raised), var(--paper));
+  border: 1px solid var(--orange);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--orange);
+  box-shadow:
+    0 3px 18px #0008,
+    0 0 0 5px color-mix(in srgb, var(--paper) 75%, transparent);
+}
+.wheel-hub span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding-left: 3px;
+}
+.wheel-hub strong {
+  font-family: var(--display);
+  font-weight: var(--display-weight);
+  font-size: 34px;
+  line-height: 1.1;
+}
+.wheel-pointer {
+  position: absolute;
+  z-index: 3;
+  top: -10px;
+  left: calc(50% - 10px);
+  width: 20px;
+  height: 26px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 2px #0008);
+}
+.wheel-ball-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.15, 0.65, 0.14, 1);
+  pointer-events: none;
+}
+.wheel-ball-orbit i {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  top: 12px;
+  left: calc(50% - 5.5px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #fff 15%, #faf1cf 50%, #9b8c61 100%);
+  box-shadow: 0 2px 5px #0008;
+}
+.wheel-result-seal {
+  position: absolute;
+  z-index: 3;
+  bottom: -5px;
+  left: calc(50% - 32px);
+  width: 64px;
+  height: 40px;
+  border-radius: 24px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 3px solid var(--surface);
+  display: grid;
+  place-items: center;
+  font-family: 'Space Grotesk Variable', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  animation: bonus-pop 450ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.roulette-show.spinning .wheel-halo {
+  animation: roulette-halo 1.1s ease-in-out infinite;
+}
+.roulette-show.requesting .wheel-hub {
+  animation: turn-pulse 1.6s ease-in-out infinite;
+}
+.roulette-show.result :is(.roulette-wheel, .wheel-ball-orbit) {
+  transition: none;
+}
+.roulette-show.won .wheel-rim {
+  box-shadow:
+    0 0 0 1px var(--orange),
+    0 0 35px color-mix(in srgb, var(--orange) 40%, transparent);
+}
+.roulette-outcomes {
+  display: grid;
+  grid-template-columns: 1fr 36px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-top: 22px;
+}
+.roulette-outcomes > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 3px 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.roulette-outcomes > div > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.roulette-outcomes strong {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  font-size: 26px;
+  font-family: 'Space Grotesk Variable', sans-serif;
+}
+.roulette-outcomes small {
+  font-size: 12px;
+  color: var(--ink);
+}
+.roulette-outcomes > div:last-child strong {
+  color: var(--orange);
+}
+.roulette-outcomes .landed {
+  border-color: var(--orange);
+  background: var(--accent-soft);
+}
+.roulette-or {
+  font-size: 9px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+.roulette-caption {
+  text-align: center;
+  min-height: 94px;
+  padding: 18px 8px;
+}
+.roulette-caption > strong {
+  font-size: 20px;
+  font-family: var(--display);
+  font-weight: var(--display-weight);
+  color: var(--ink);
+}
+.roulette-caption p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+.app .roulette-controls {
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.roulette-skip {
+  display: flex;
+  margin: 0 auto;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+}
+.appearance-velvet .wheel-rim {
+  border-color: #3e3829;
+}
+.appearance-velvet .roulette-show {
+  background: radial-gradient(ellipse at center, #1d4b37, #091d17 78%);
+}
+.appearance-pop .roulette-show {
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  background: var(--accent-soft);
+}
+.appearance-pop .wheel-rim {
+  border-color: #343326;
+  box-shadow:
+    0 0 0 2px #343326,
+    5px 7px 0 #343326;
+}
+.appearance-pop .pocket-zero path {
+  fill: #fff9eb;
+}
+.appearance-pop .wheel-hub {
+  color: var(--ink);
+  background: #f4d14d;
+  border-color: #343326;
+}
+.appearance-pop .roulette-marquee,
+.appearance-pop .roulette-or {
+  color: var(--ink);
+}
+
+/* The music player is available from every theme, including compact headers. */
+.audio-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  padding: 9px 12px;
+  color: var(--muted);
+  background: var(--surface);
+}
+.audio-trigger:hover,
+.audio-trigger.playing {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+.mini-equalizer {
+  height: 16px;
+  display: none;
+  gap: 2px;
+  align-items: end;
+}
+.audio-trigger.playing .mini-equalizer {
+  display: flex;
+}
+.mini-equalizer i,
+.music-equalizer i {
+  width: 3px;
+  height: 70%;
+  background: currentColor;
+  border-radius: 2px;
+  transform-origin: bottom;
+}
+.playing .mini-equalizer i,
+.playing .music-equalizer i {
+  animation: equalizer 0.8s ease-in-out infinite alternate;
+}
+.playing :is(.mini-equalizer, .music-equalizer) i:nth-child(2n) {
+  animation-delay: -0.35s;
+  height: 100%;
+}
+.playing :is(.mini-equalizer, .music-equalizer) i:nth-child(3n) {
+  animation-delay: -0.6s;
+  height: 45%;
+}
+.record-player {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  padding: 22px 0 26px;
+}
+.record-disc {
+  position: relative;
+  width: 155px;
+  height: 155px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, #171b20 0 2px, #292b30 3px, #15191d 4px 5px);
+  box-shadow: 0 5px 15px #0004;
+  display: grid;
+  place-items: center;
+  animation: record-spin 8s linear infinite;
+  animation-play-state: paused;
+}
+.playing .record-disc {
+  animation-play-state: running;
+}
+.record-disc > div {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: var(--on-accent);
+}
+.record-disc span {
+  font-size: 5px;
+  letter-spacing: 0.8px;
+  font-weight: 800;
+}
+.record-info .eyebrow {
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  color: var(--orange);
+}
+.app .record-info h3 {
+  font-size: 29px;
+  line-height: 1.1;
+  margin: 9px 0;
+}
+.record-info p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.music-equalizer {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+  height: 20px;
+  margin-top: 17px;
+  color: var(--orange);
+}
+.music-volume {
+  display: block;
+  margin: 25px 0;
+}
+.music-volume > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.music-volume output {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.app .music-volume input {
+  display: block;
+  width: 100%;
+  accent-color: var(--orange);
+  cursor: pointer;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  margin-top: 10px;
+}
+.audio-effects {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+.audio-effects > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.audio-effects strong {
+  font-size: 13px;
+  display: block;
+}
+.audio-effects small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.audio-switch {
+  height: 24px;
+  width: 42px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  flex-shrink: 0;
+  padding: 3px;
+}
+.audio-switch i {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 160ms ease;
+}
+.audio-switch.on {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+.audio-switch.on i {
+  background: var(--on-accent);
+  transform: translateX(17px);
+}
+.audio-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 18px;
+}
+
+@keyframes card-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(18px, -42px, 0) rotateY(-80deg) rotateZ(8deg) scale(0.85);
+  }
+  65% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateY(0) rotateZ(0) scale(1);
+  }
+}
+@keyframes panel-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes art-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(25px) rotate(5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+@keyframes sparkle-turn {
+  0%,
+  100% {
+    rotate: 0deg;
+    scale: 1;
+  }
+  50% {
+    rotate: 40deg;
+    scale: 0.82;
+  }
+}
+@keyframes sticker-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -7px;
+  }
+}
+@keyframes turn-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--orange) 30%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+@keyframes dot-pop {
+  from {
+    transform: scale(0.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes bonus-pop {
+  from {
+    opacity: 0;
+    scale: 0.75;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes bank-glow {
+  40% {
+    filter: drop-shadow(0 0 13px var(--orange));
+    scale: 1.08;
+  }
+}
+@keyframes hand-bust {
+  20%,
+  60% {
+    translate: -4px 0;
+  }
+  40%,
+  80% {
+    translate: 4px 0;
+  }
+}
+@keyframes dialog-arrive {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes backdrop-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), 460px) rotate(var(--twist));
+  }
+}
+@keyframes roulette-halo {
+  50% {
+    box-shadow: 0 0 22px color-mix(in srgb, var(--orange) 20%, transparent);
+    opacity: 0.6;
+  }
+}
+@keyframes equalizer {
+  from {
+    transform: scaleY(0.3);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes record-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 1100px) {
+  .audio-trigger .mini-equalizer {
+    display: none !important;
+  }
+  .audio-trigger {
+    padding: 9px;
+  }
+}
+@media (max-width: 540px) {
+  .app .topbar {
+    gap: 8px;
+  }
+  .app .wordmark {
+    font-size: 23px;
+  }
+  .appearance-velvet .wordmark {
+    font-size: 20px;
+  }
+  .app .roulette-modal {
+    padding: 19px 16px;
+  }
+  .app .roulette-modal .modal-head h2 {
+    font-size: 28px;
+  }
+  .roulette-show {
+    padding: 14px 12px;
+  }
+  .roulette-stage {
+    width: min(100% - 26px, clamp(180px, 32vh, 280px));
+    margin-top: 22px;
+  }
+  .roulette-marquee {
+    font-size: 7px;
+    letter-spacing: 1px;
+    gap: 7px;
+  }
+  .roulette-outcomes {
+    grid-template-columns: 1fr 22px 1fr;
+    gap: 5px;
+  }
+  .roulette-outcomes > div {
+    padding: 10px 8px;
+    gap: 4px;
+  }
+  .roulette-outcomes strong {
+    font-size: 23px;
+  }
+  .roulette-outcomes > div > span {
+    font-size: 7px;
+    letter-spacing: 0.5px;
+  }
+  .roulette-outcomes small {
+    font-size: 11px;
+  }
+  .roulette-caption {
+    padding: 15px 2px;
+    min-height: 92px;
+  }
+  .record-player {
+    gap: 18px;
+  }
+  .record-disc {
+    width: 118px;
+    height: 118px;
+  }
+  .record-disc > div {
+    width: 65px;
+    height: 65px;
+  }
+  .app .record-info h3 {
+    font-size: 25px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app *,
+  .app *::before,
+  .app *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .celebration {
+    display: none;
+  }
+}
