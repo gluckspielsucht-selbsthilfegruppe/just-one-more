@@ -2,6 +2,25 @@
 
 A browser-based, real-time push-your-luck card game for 2–8 players. Draw another card, bank your points, or risk the whole round on roulette. Built from the candidate v1.0 in [game-rules.md](game-rules.md).
 
+## Quick start
+
+Run one of these options from the project directory:
+
+- **Docker** (requires Docker with Compose): `docker compose up --build -d`.
+- **Node.js** (requires Node.js 22.12+ and npm): `npm ci && npm run dev`.
+
+Open **http://localhost:3000**, then choose **Create a table** to play with friends or **Play a practice game** to try it with bots. Friends on the same Wi-Fi use your computer's LAN IP instead of `localhost`.
+
+**Playing over the internet?** With Docker, run:
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml up --build tunnel
+```
+
+Everyone, including you, opens the `https://….trycloudflare.com` URL printed in the terminal. Create a table there and share its invitation link. Keep the terminal open and your computer awake while playing. See [Quick Tunnel details](#play-over-the-internet-with-a-quick-tunnel).
+
+To stop: press **Ctrl+C** for Node.js or the foreground tunnel; run `docker compose down` for local Docker, or `docker compose -f compose.yaml -f compose.tunnel.yaml down` for both the app and tunnel. Saved Docker data is retained.
+
 ## Start playing
 
 Requires **Node.js 22.12 or later** and npm.
@@ -55,6 +74,44 @@ docker compose start app
 
 Treat the backup as private: it contains account and session data. The image uses a multi-stage build, includes only production dependencies, runs as the unprivileged `node` user, and checks `/api/health`. Source changes require rebuilding the image with the startup command above.
 
+## Play over the internet with a Quick Tunnel
+
+Start the Cloudflare Quick Tunnel in the foreground with the optional Compose override. Compose also starts the required app service:
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml up tunnel
+```
+
+Wait for the `https://….trycloudflare.com` URL in the terminal output. Open that URL yourself, create a table, and share its invitation link with your friends. Everyone must use the same tunnel URL, including the host, so invitations point to the public server. Friends only need a browser; no shared Wi-Fi, router port forwarding, Cloudflare account, domain, or token is required. Keep this terminal open while playing; Ctrl+C stops the foreground Compose run.
+
+The tunnel waits for the app's health check and forwards both HTTP and WebSockets to `app:3000` on Docker's network. The override enables `COOKIE_SECURE=true` for HTTPS sessions. Use the HTTPS URL while this mode is active; plain HTTP LAN addresses cannot carry the secure session cookie. The existing saved-data volume is reused.
+
+Keep Docker and the host computer running and awake throughout the game. Restarting or recreating the tunnel gives it a new hostname: read the latest logs and share the new link. Browser cookies belong to the old hostname, so guest identities and saved seats do not automatically follow to a new URL. Accounts can sign in again on the new URL; saved game data stays in the volume. Localhost and LAN cookies are also separate from tunnel cookies.
+
+Stop public access while leaving the app running:
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml stop tunnel
+```
+
+Stop both containers, retaining saved data:
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml down
+```
+
+To return to local HTTP play, run the `down` command above, then `docker compose up -d` without the override (and without setting `COOKIE_SECURE=true`).
+
+### Cost and limits
+
+Checked **2026-10-09**: Cloudflare describes Quick Tunnels as free and accountless. This setup supplies no card or billing account, creates no paid subscription or trial, and has no card hold, trial conversion, or automatic paid upgrade to cancel. [Cloudflare's service description](https://blog.cloudflare.com/protected-quick-tunnels/).
+
+Quick Tunnels allow **200 in-flight requests**; excess requests fail with **HTTP 429**, rather than becoming paid overages. They have no uptime guarantee, change hostname on restart, and do not support Server-Sent Events. The game uses WebSockets, which Cloudflare supports. These limits are suitable for a small 2–8-player demonstration, but rehearse on the actual participant networks. Cloudflare maintenance or a network interruption can drop connections; the client reconnects while the hostname remains available. [Quick Tunnel limits](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/), [WebSocket behavior](https://developers.cloudflare.com/network/websockets/).
+
+Anyone with the URL can access this server. A private table hides it from public-table discovery but does not restrict access to the website. Stop the tunnel when the session is over; stopping `cloudflared` ends access through that URL. No Cloudflare dashboard cleanup is needed.
+
+If the URL does not load, check `docker compose -f compose.yaml -f compose.tunnel.yaml ps` and the tunnel logs. The host network must allow outbound connections to Cloudflare on port **7844** (UDP for QUIC or TCP for HTTP/2). If UDP is blocked, `cloudflared` can fall back to HTTP/2; if both are blocked, use another network. [Tunnel firewall requirements](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/tunnel-with-firewall/).
+
 ## What is included
 
 - Live public-table discovery, search, private tables, room codes, and invitation links.
@@ -97,11 +154,11 @@ See [docs/verification.md](docs/verification.md) for the browser rehearsal and [
 
 ## Network access and zero cost
 
-Local and LAN operation follow the newer [tech-constraints.md](tech-constraints.md). This implementation does **not** provision Cloudflare, a tunnel, a paid plan, or a trial. There are no usage fees or automatic upgrades. Stop the terminal process with Ctrl+C to stop the service; the saved data remains local.
+Local and LAN operation follow [tech-constraints.md](tech-constraints.md). The optional [Quick Tunnel setup](#play-over-the-internet-with-a-quick-tunnel) adds internet access through Cloudflare while the app and saved data stay on your computer. No paid plan or trial is configured. For a directly running Node server, Ctrl+C stops the service; for Docker, use the Compose stop/down commands above.
 
-If a friend cannot connect, ensure both devices share a network, use the printed IP address rather than `localhost`, and check that the host firewall permits incoming connections on the chosen port. Guest Wi-Fi with client isolation may prevent LAN play. A local network URL is not reachable from unrelated networks.
+For LAN play, if a friend cannot connect, ensure both devices share a network, use the printed IP address rather than `localhost`, and check that the host firewall permits incoming connections on the chosen port. Guest Wi-Fi with client isolation may prevent LAN play. A local network URL is not reachable from unrelated networks; use the Quick Tunnel for those participants.
 
-The older Cloudflare-specific acceptance criterion in `SPEC.md` has not been claimed as passed. Internet hosting is a separate deployment decision. For any future deployment, verify its actual current free-tier limits and fail-closed billing behavior before provisioning. This single-process, file-backed application is intended for a local hackathon and trusted friends. Public production operation would additionally need HTTPS, operational backups, account recovery, durable transactional storage, and an abuse-management plan.
+The tunnel is intended for hackathon sessions with trusted friends, and does not make this single-process, file-backed application a managed hosting service. See [docs/verification.md](docs/verification.md) for tested connectivity and remaining presentation-network checks. Public production operation would additionally need stable hosting, operational backups, account recovery, durable transactional storage, and an abuse-management plan.
 
 ## Project layout
 

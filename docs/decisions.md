@@ -1,6 +1,6 @@
 # Implementation decisions
 
-The request authorized making assumptions without stopping for clarification. The existing source documents are retained unchanged. This file records how their unresolved or conflicting points were handled.
+The original implementation request authorized assumptions. For the later internet multiplayer setup, the user explicitly selected a Cloudflare Quick Tunnel. The existing source documents are retained unchanged. This file records how their unresolved or conflicting points were handled.
 
 ## Rules baseline
 
@@ -22,7 +22,7 @@ An extra Second Chance passes automatically to the next active, unprotected seat
 
 ## Hosting precedence
 
-`tech-constraints.md` is the newer and more explicit infrastructure guidance: local development/operation is the default, and hosting is optional. One Node server on `0.0.0.0`, serving both HTTP and WebSockets, provides zero-cost LAN multiplayer. No cloud account, card, paid product, or tunnel is needed or configured. Cross-network access and the older Cloudflare requirement remain deployment work, not a claimed implementation test result.
+`tech-constraints.md` is the newer and more explicit infrastructure guidance: local development/operation is the default, and hosting is optional. One Node server on `0.0.0.0`, serving both HTTP and WebSockets, provides zero-cost LAN multiplayer. The user subsequently selected accountless Cloudflare Quick Tunnels for internet sessions. `compose.tunnel.yaml` opts into a pinned `cloudflared` sidecar, waits for the app to be healthy, and enables secure session cookies. The base Compose setup remains local/LAN HTTP. No account, card, domain, tunnel token, paid product, or trial is configured. The app and data still run locally; Cloudflare forwards public HTTPS and WebSocket traffic. Current limits, start/share/stop instructions, and hostname/session changes are documented in the README. Presentation-network acceptance remains a separate rehearsal recorded in `verification.md`.
 
 ## Architecture
 
@@ -38,4 +38,4 @@ Human sessions have a WebSocket heartbeat. Slow clients, invalid commands, overs
 
 ## Deliberate operational boundaries
 
-This is a complete local multiplayer implementation of the documented game, not a managed internet service. One process owns its data file. File storage is not suitable for horizontally scaled instances, and snapshots are not an operational backup. Account recovery, moderation tooling, spectators, public deployment, and internet matchmaking across multiple servers are not implemented. The game rules remain isolated so future cards and rule variants can be added without rewriting transport or presentation.
+This multiplayer implementation can be exposed temporarily through a Quick Tunnel; the host computer must remain running. It is not a managed internet service. One process owns its data file. File storage is not suitable for horizontally scaled instances, and snapshots are not an operational backup. Account recovery, moderation tooling, spectators, permanent public hosting, and internet matchmaking across multiple servers are not implemented. The game rules remain isolated so future cards and rule variants can be added without rewriting transport or presentation.
