@@ -47,6 +47,8 @@ Both modes serve the website and WebSocket connection from one port. The product
 
 Requires Docker with the Compose plugin. Node.js and npm are not required on the host.
 
+For a hosting plan that limits Dockerfiles to two stages, select `Dockerfile.small` as the Dockerfile path in the host's build settings. It builds the same production app in two stages. To build it locally, run `docker build -f Dockerfile.small -t just-one-more:small .`.
+
 ```sh
 docker compose up --build -d
 ```
