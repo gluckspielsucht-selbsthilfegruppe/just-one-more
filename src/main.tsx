@@ -9,6 +9,7 @@ import './styles.css';
 import './themes.css';
 import './hands.css';
 import './motion.css';
+import './card-themes.css';
 import App from './App';
 import { readCachedAppearance } from './appearance';
 

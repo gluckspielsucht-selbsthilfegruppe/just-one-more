@@ -1,0 +1,295 @@
+/* Card designs are personal and stay independent of the application palette. */
+.app .card-theme-grid .theme-option {
+  min-width: 0;
+  min-height: 118px;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 6px;
+  text-align: center;
+}
+.app .card-theme-grid .theme-option > span {
+  position: relative;
+  width: 45px;
+  height: 62px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 7px;
+  font-size: 28px;
+  font-weight: 700;
+  box-shadow: 0 6px 12px #0004;
+}
+.app .card-theme-grid .theme-option > strong {
+  font-size: 11px;
+  line-height: 1.2;
+}
+.app .card-theme-grid .theme-option:is(.prism, .gilded, .aurora) > span::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.45;
+}
+.app .card-theme-grid .theme-option:is(.prism, .gilded, .aurora) > span::after {
+  content: '';
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: -65%;
+  width: 65%;
+  background: linear-gradient(90deg, transparent, #fff9, transparent);
+  pointer-events: none;
+  transform: translateX(-140%) skewX(-20deg);
+  animation: foil-sweep 5s ease-in-out infinite;
+}
+.app .card-theme-grid .theme-option.prism > span {
+  color: #26264e;
+  border-color: #99e3ed;
+  background: conic-gradient(
+    from 40deg at 50% 45%,
+    #f9dfec,
+    #bdddf8,
+    #d8c1fb,
+    #baf4e9,
+    #fff5cf,
+    #f9dfec
+  );
+  box-shadow:
+    0 0 0 1px #92eeef,
+    0 7px 14px #514c8d60;
+}
+.app .card-theme-grid .theme-option.gilded > span {
+  color: #f6dfa7;
+  border-color: #d7b96d;
+  background:
+    radial-gradient(circle at 75% 12%, #8a6e3c, transparent 48%),
+    linear-gradient(145deg, #302936, #10151d 70%);
+  box-shadow:
+    inset 0 0 0 2px #a8874c,
+    0 7px 14px #0008;
+}
+.app .card-theme-grid .theme-option.aurora > span {
+  color: #efffff;
+  border-color: #76dfef;
+  background:
+    radial-gradient(circle at 80% 16%, #5beee977, transparent 48%),
+    radial-gradient(circle at 15% 85%, #af56ef9c, transparent 54%),
+    linear-gradient(135deg, #142f53, #170e37);
+  box-shadow:
+    0 0 0 1px #78ecf0,
+    0 7px 15px #41cde968;
+}
+
+.app:is(.theme-prism, .theme-gilded, .theme-aurora) .card-hand .playing-card {
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 9px;
+}
+.app:is(.theme-prism, .theme-gilded, .theme-aurora)
+  .card-hand
+  .playing-card
+  :is(.card-corner, .card-middle) {
+  z-index: 1;
+}
+.app:is(.theme-prism, .theme-gilded, .theme-aurora) .card-hand.is-out .playing-card::after {
+  z-index: 3;
+}
+.theme-prism .hand-cards .playing-card::before,
+.theme-gilded .hand-cards .playing-card::before,
+.theme-aurora .hand-cards .playing-card::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: -25%;
+  bottom: -25%;
+  left: -65%;
+  width: 65%;
+  background: linear-gradient(90deg, transparent, var(--foil-glint), transparent);
+  pointer-events: none;
+  transform: translateX(-140%) skewX(-20deg);
+  animation: foil-sweep 5s ease-in-out infinite;
+}
+.theme-gilded .hand-cards .playing-card::before {
+  animation-delay: 1s;
+}
+.theme-aurora .hand-cards .playing-card::before {
+  animation-delay: 2s;
+}
+.app:is(.theme-prism, .theme-gilded, .theme-aurora) .card-hand .playing-card.frozen::before,
+.app:is(.theme-prism, .theme-gilded, .theme-aurora) .card-hand.is-out .playing-card::before {
+  display: none;
+}
+.app:is(.theme-prism, .theme-gilded, .theme-aurora)
+  .card-hand
+  .playing-card.frozen
+  .card-middle
+  > strong {
+  color: #345560;
+  text-shadow: none;
+}
+.app:is(.theme-prism, .theme-gilded, .theme-aurora)
+  .card-hand
+  .playing-card.frozen
+  .card-middle
+  > svg {
+  color: #54727c;
+  filter: none;
+}
+
+/* Pearl foil shifts color with the card's existing color family. */
+.app.theme-prism .card-hand .playing-card {
+  --foil-edge: #68cbec;
+  --foil-glint: #fffdf2d9;
+  color: #25254c;
+  border: 1px solid var(--foil-edge);
+  background:
+    radial-gradient(circle at 18% 14%, #fffefa, transparent 45%),
+    radial-gradient(
+      circle at 78% 82%,
+      color-mix(in srgb, var(--foil-edge) 64%, transparent),
+      transparent 52%
+    ),
+    conic-gradient(from 35deg at 50% 48%, #f9e1ef, #bddffb, #dfcbfb, #bdf3ed, #fff2d4, #f9e1ef);
+  box-shadow:
+    inset 0 0 0 2px #ffffffb8,
+    inset 0 0 18px #fff9,
+    0 0 0 1px #bcf0f5,
+    0 7px 15px #46558166;
+}
+.app.theme-prism .card-hand .playing-card.butter {
+  --foil-edge: #e7b44f;
+}
+.app.theme-prism .card-hand .playing-card.lavender {
+  --foil-edge: #a67aee;
+}
+.app.theme-prism .card-hand .playing-card.sage {
+  --foil-edge: #49b8a4;
+}
+.app.theme-prism .card-hand .playing-card.peach {
+  --foil-edge: #e690b7;
+}
+.app.theme-prism .card-hand .playing-card .card-middle > strong {
+  color: #25254c;
+  text-shadow:
+    0 1px 0 #fff,
+    0 0 10px #fff;
+}
+.app.theme-prism .card-hand .playing-card .card-middle > svg {
+  color: #6157a3;
+  opacity: 0.28;
+}
+
+/* A dark lacquered face with a double metallic edge. */
+.app.theme-gilded .card-hand .playing-card {
+  --foil-glint: #f5d894a3;
+  color: #f7dfa6;
+  border: 1px solid #e8ca81;
+  background:
+    linear-gradient(126deg, transparent 35%, #f1d58e1c 50%, transparent 65%),
+    radial-gradient(circle at 72% 13%, #785b37 0%, transparent 48%),
+    linear-gradient(145deg, #302935, #11151e 58%, #221c25);
+  box-shadow:
+    inset 0 0 0 2px #5f4e35,
+    inset 0 0 0 3px #d4b66c,
+    inset 0 0 17px #e5ba632a,
+    0 7px 17px #0009;
+}
+.app.theme-gilded .card-hand .playing-card :is(.card-corner, .card-middle > strong) {
+  font-family: 'DM Serif Display', serif;
+  font-weight: 400;
+}
+.app.theme-gilded .card-hand .playing-card .card-middle > strong {
+  color: #ffedbc;
+  text-shadow:
+    0 1px 0 #8c6a30,
+    0 0 13px #e8bd7580;
+}
+.app.theme-gilded .card-hand .playing-card .card-middle > svg {
+  color: #edc779;
+  opacity: 0.35;
+}
+.app.theme-gilded .card-hand .playing-card:is(.lavender, .sage) {
+  color: #e6e5ed;
+  border-color: #ddd9e7;
+  box-shadow:
+    inset 0 0 0 2px #575561,
+    inset 0 0 0 3px #c0bbc9,
+    0 7px 17px #0009;
+}
+.app.theme-gilded .card-hand .playing-card:is(.lavender, .sage) .card-middle > strong {
+  color: #f5f1ff;
+  text-shadow: 0 0 13px #d4c6f499;
+}
+
+/* Cool glass with a luminous edge and soft color below the surface. */
+.app.theme-aurora .card-hand .playing-card {
+  --foil-glint: #b9faffad;
+  color: #f0ffff;
+  border: 1px solid #85e4f0;
+  background:
+    radial-gradient(circle at 80% 12%, #83f5ed85, transparent 43%),
+    radial-gradient(circle at 12% 82%, #a64ee8a6, transparent 56%),
+    linear-gradient(145deg, #153454, #24133e 60%, #081e32);
+  box-shadow:
+    inset 0 0 0 1px #c9ffff96,
+    inset 0 0 18px #69dbff44,
+    0 0 0 1px #72dceaa3,
+    0 7px 17px #225aaa99;
+}
+.app.theme-aurora .card-hand .playing-card .card-middle > strong {
+  color: #fff;
+  text-shadow:
+    0 0 12px #97ffff,
+    0 0 21px #a76aff;
+}
+.app.theme-aurora .card-hand .playing-card .card-middle > svg {
+  color: #9fefff;
+  opacity: 0.4;
+  filter: drop-shadow(0 0 5px #7cf3ff);
+}
+.app.theme-aurora .card-hand .playing-card:is(.lavender, .peach) {
+  border-color: #e7a0ff;
+  box-shadow:
+    inset 0 0 0 1px #ffdcff9c,
+    inset 0 0 18px #d77cff66,
+    0 0 0 1px #e7a0ff91,
+    0 7px 17px #7135a999;
+}
+.app:is(.theme-prism, .theme-gilded, .theme-aurora) .card-hand .playing-card.frozen {
+  border-color: #92a8aa;
+  box-shadow: 0 4px 8px #0002;
+}
+
+@keyframes foil-sweep {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-20deg);
+  }
+  25% {
+    opacity: 0.65;
+  }
+  45% {
+    opacity: 0.65;
+    transform: translateX(330%) skewX(-20deg);
+  }
+  52%,
+  100% {
+    opacity: 0;
+    transform: translateX(330%) skewX(-20deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .app .card-theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .card-theme-grid .theme-option:is(.prism, .gilded, .aurora) > span::after,
+  .theme-prism .hand-cards .playing-card::before,
+  .theme-gilded .hand-cards .playing-card::before,
+  .theme-aurora .hand-cards .playing-card::before {
+    display: none;
+  }
+}

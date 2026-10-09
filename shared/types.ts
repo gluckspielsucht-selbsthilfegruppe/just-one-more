@@ -115,11 +115,13 @@ export interface Stats {
   rounds: number;
   bestRound: number;
 }
+export const CARD_DESIGNS = ['classic', 'midnight', 'mint', 'prism', 'gilded', 'aurora'] as const;
+export type CardDesign = (typeof CARD_DESIGNS)[number];
 export interface Profile {
   id: string;
   name: string;
   color: string;
-  theme: 'classic' | 'midnight' | 'mint';
+  theme: CardDesign;
   appearance: 'neon' | 'velvet' | 'pop';
   account: boolean;
   stats: Stats;

@@ -22,7 +22,13 @@ import {
   startRound,
   toPublicRoom,
 } from '../shared/engine';
-import type { GameAction, Profile, Room, RoomSummary } from '../shared/types';
+import {
+  CARD_DESIGNS,
+  type GameAction,
+  type Profile,
+  type Room,
+  type RoomSummary,
+} from '../shared/types';
 import { Store, type User } from './store';
 
 const derive = promisify(scrypt);
@@ -256,7 +262,7 @@ export function createApplication(
       .object({
         name: cleanName,
         color: z.enum(COLORS as [string, ...string[]]),
-        theme: z.enum(['classic', 'midnight', 'mint']),
+        theme: z.enum(CARD_DESIGNS),
         appearance: z.enum(['neon', 'velvet', 'pop']).optional(),
       })
       .safeParse(req.body);
