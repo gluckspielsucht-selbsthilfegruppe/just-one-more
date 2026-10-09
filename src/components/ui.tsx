@@ -1,5 +1,15 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
-import { X, Bot, Crown, Snowflake, ShieldCheck, Sparkles, Layers3, Eye } from 'lucide-react';
+import {
+  X,
+  Bot,
+  Crown,
+  Snowflake,
+  ShieldCheck,
+  Sparkles,
+  Layers3,
+  Eye,
+  BrainCircuit,
+} from 'lucide-react';
 import type { Card, Player } from '../../shared/types';
 
 export function Mark({ small = false }: { small?: boolean }) {
@@ -120,7 +130,9 @@ export function PlayingCard({
             ? '2nd'
             : card.kind === 'prediction'
               ? '×3'
-              : 'F3';
+              : card.kind === 'hackathon'
+                ? 'AI'
+                : 'F3';
   const name =
     card.kind === 'number'
       ? `Number ${card.value}`
@@ -132,8 +144,10 @@ export function PlayingCard({
             ? 'Second Chance'
             : card.kind === 'prediction'
               ? 'Prediction'
-              : 'Flip Three';
-  const description = `${name}${card.frozen ? ' — frozen, scores nothing but still counts for duplicates' : card.disabled ? ' — disabled' : ''}`;
+              : card.kind === 'hackathon'
+                ? 'AI Hackathon — reverses the round rules'
+                : 'Flip Three';
+  const description = `${name}${card.frozen ? ' — frozen, scores nothing but still counts when checking repeats' : card.disabled ? ' — disabled' : ''}`;
   const color =
     card.kind === 'number'
       ? ['butter', 'lavender', 'sage', 'peach'][card.value % 4]
@@ -141,7 +155,9 @@ export function PlayingCard({
         ? 'sage'
         : card.kind === 'prediction'
           ? 'lavender'
-          : 'peach';
+          : card.kind === 'hackathon'
+            ? 'hackathon'
+            : 'peach';
   const Icon =
     card.kind === 'chance'
       ? ShieldCheck
@@ -149,7 +165,9 @@ export function PlayingCard({
         ? Eye
         : card.kind === 'flip3'
           ? Layers3
-          : Sparkles;
+          : card.kind === 'hackathon'
+            ? BrainCircuit
+            : Sparkles;
   return (
     <div
       className={`playing-card ${color} ${small ? 'compact' : ''} ${card.frozen || card.disabled ? 'frozen' : ''} ${fresh ? 'fresh' : ''}`}

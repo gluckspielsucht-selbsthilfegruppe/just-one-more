@@ -1,6 +1,6 @@
 import type { Profile } from '../shared/types';
 
-export type SoundCue = 'draw' | 'bank' | 'bust' | 'special' | 'win' | 'turn' | 'tick';
+export type SoundCue = 'draw' | 'bank' | 'bust' | 'special' | 'hackathon' | 'win' | 'turn' | 'tick';
 export const SOUNDTRACKS = {
   neon: {
     name: 'Synthwave',
@@ -276,6 +276,7 @@ export class GameAudio {
       bank: [64, 71, 76],
       bust: [52, 45],
       special: [76, 83, 88],
+      hackathon: [48, 55, 60, 67, 72, 84],
       win: [72, 76, 79, 84, 88],
       turn: [72, 79],
       tick: [91],
@@ -283,8 +284,8 @@ export class GameAudio {
     notes[cue].forEach((note, i) =>
       this.voice(
         note,
-        now + i * 0.075,
-        cue === 'tick' ? 0.035 : 0.24,
+        now + i * (cue === 'hackathon' ? 0.13 : 0.075),
+        cue === 'tick' ? 0.035 : cue === 'hackathon' ? 0.42 : 0.24,
         cue === 'tick' ? 0.2 : 0.17,
         'sine',
         false,

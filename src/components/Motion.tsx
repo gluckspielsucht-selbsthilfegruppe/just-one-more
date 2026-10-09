@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Skull, Sparkles } from 'lucide-react';
+import { BrainCircuit, Skull, Sparkles } from 'lucide-react';
 import type { GameEvent } from '../../shared/types';
 import { useReducedMotion } from '../motion';
 
@@ -53,6 +53,35 @@ export function Celebration() {
 }
 
 export function RoundMoment({ event, name }: { event: GameEvent; name: string }) {
+  if (event.moment === 'hackathon')
+    return (
+      <div className="hackathon-moment" role="status" aria-live="assertive">
+        <div className="hackathon-grid" aria-hidden="true" />
+        <div className="hackathon-shockwave" aria-hidden="true" />
+        <div className="hackathon-shockwave second" aria-hidden="true" />
+        <div className="hackathon-stage" aria-hidden="true">
+          <div className="hackathon-orbit" />
+          <div className="hackathon-orbit outer" />
+          <div className="hackathon-card">
+            <span className="hackathon-card-corner">JOM / 001</span>
+            <BrainCircuit size={68} strokeWidth={1.35} />
+            <strong>
+              AI
+              <br />
+              HACKATHON
+            </strong>
+            <span className="hackathon-card-footer">REWRITE THE ROUND</span>
+          </div>
+        </div>
+        <div className="hackathon-copy">
+          <span>{name} changed the game</span>
+          <strong>
+            RULES <em>REVERSED</em>
+          </strong>
+          <p>Every hand. Every turn. Everything upside down.</p>
+        </div>
+      </div>
+    );
   const lost = event.moment === 'bust' || event.moment === 'roulette-loss';
   return (
     <div className={`round-moment ${lost ? 'loss' : 'hit'}`} role="status" aria-live="polite">
@@ -61,15 +90,23 @@ export function RoundMoment({ event, name }: { event: GameEvent; name: string })
         <span className="moment-icon">{lost ? <Skull size={38} /> : <Sparkles size={38} />}</span>
         <span className="moment-eyebrow">{lost ? 'THE ROUND CLAIMS ANOTHER' : 'WHAT A CALL'}</span>
         <strong>
-          {lost ? 'BUSTED' : event.moment === 'prediction-hit' ? 'NAILED IT!' : 'DOUBLE UP!'}
+          {lost
+            ? 'BUSTED'
+            : event.moment === 'prediction-reverse-hit'
+              ? 'WRONG WINS!'
+              : event.moment === 'prediction-hit'
+                ? 'NAILED IT!'
+                : 'DOUBLE UP!'}
         </strong>
         <span className="moment-player">
           {name}{' '}
           {lost
             ? 'is out this round'
-            : event.moment === 'prediction-hit'
-              ? 'called it perfectly'
-              : 'beats the wheel'}
+            : event.moment === 'prediction-reverse-hit'
+              ? 'missed it perfectly'
+              : event.moment === 'prediction-hit'
+                ? 'called it perfectly'
+                : 'beats the wheel'}
         </span>
       </div>
     </div>
