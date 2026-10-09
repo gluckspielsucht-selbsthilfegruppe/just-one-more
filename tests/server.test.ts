@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApplication } from '../server/app';
-import { DEFAULT_SETTINGS, makePlayer } from '../shared/engine';
+import { DEFAULT_SETTINGS, makePlayer, startRound } from '../shared/engine';
 import type { Profile, PublicRoom } from '../shared/types';
 
 type Snapshot = {
@@ -114,6 +114,43 @@ afterEach(async () => {
 });
 
 describe('four-player real-time server', () => {
+  it('lets the solo host reveal AI Hackathon once and broadcasts the real card event', async () => {
+    const host = await connect('Alice');
+    await host.request('create', { name: 'Bot demo', settings: DEFAULT_SETTINGS });
+    await host.request('add-bot');
+    await expect(host.request('trigger-hackathon')).rejects.toThrow('Start a round');
+    const room = application.store.data.rooms[host.state.room!.code];
+    startRound(room, () => 0.9999);
+    await host.request('chat', { message: 'Ready for the demo.' });
+    const secondScreen = await connect('Alice', host.cookie);
+    const before = host.state.room!;
+    expect(before.reversed).toBe(false);
+    await expect(
+      host.request('trigger-hackathon', {}, { version: before.version - 1 }),
+    ).rejects.toThrow('table just changed');
+    await host.request('trigger-hackathon');
+    await until(() => Boolean(host.state.room?.reversed && secondScreen.state.room?.reversed));
+    const after = host.state.room!;
+    expect(after.turnId).toBe(before.turnId);
+    expect(after.deckCount).toBe(before.deckCount - 1);
+    expect(after.events.at(-1)?.moment).toBe('hackathon');
+    expect(secondScreen.state.room!.events.at(-1)?.id).toBe(after.events.at(-1)?.id);
+    expect(
+      application.store.data.rooms[room.code].used.filter((card) => card.kind === 'hackathon'),
+    ).toHaveLength(1);
+    await expect(host.request('trigger-hackathon')).rejects.toThrow('already active');
+  });
+
+  it('keeps the practice shortcut out of multiplayer tables', async () => {
+    const host = await connect('Alice');
+    const friend = await connect('Bob');
+    await host.request('create', { name: 'Friends and a bot', settings: DEFAULT_SETTINGS });
+    await host.request('add-bot');
+    await friend.request('join', { code: host.state.room!.code });
+    await expect(friend.request('trigger-hackathon')).rejects.toThrow('host');
+    await expect(host.request('trigger-hackathon')).rejects.toThrow('solo bot');
+  });
+
   it('updates round stats immediately and counts completed games once across replay, reconnect and rematch', async () => {
     const a = await connect('Alice');
     const b = await connect('Bob');

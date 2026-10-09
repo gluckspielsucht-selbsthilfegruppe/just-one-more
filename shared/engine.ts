@@ -71,6 +71,12 @@ export function buildDeck(max: number): Card[] {
   add('hackathon', 0);
   return cards;
 }
+export function isSoloBotRoom(room: Pick<Room, 'players'>): boolean {
+  return (
+    room.players.filter((player) => !player.bot).length === 1 &&
+    room.players.some((player) => player.bot)
+  );
+}
 export function shuffle<T>(items: T[], random: Random): T[] {
   const result = [...items];
   for (let i = result.length - 1; i > 0; i--) {
@@ -267,6 +273,22 @@ function receive(room: Room, player: Player, card: Card, guess?: number) {
     `${player.name} drew ${card.kind === 'chance' ? 'Second Chance' : card.kind === 'double' ? '×2' : `+${card.value}`}.`,
     'special',
   );
+}
+export function triggerHackathon(input: Room, drawerId: string): Room {
+  const room = structuredClone(input);
+  if (room.phase !== 'playing') throw new Error('Start a round before revealing AI Hackathon.');
+  if (room.reversed) throw new Error('AI Hackathon is already active this round.');
+  const drawer = playerById(room, drawerId);
+  if (drawer.status !== 'active') throw new Error('No active player can receive the card.');
+  const source = [room.deck, room.discards].find((cards) =>
+    cards.some((card) => card.kind === 'hackathon'),
+  );
+  const index = source?.findIndex((card) => card.kind === 'hackathon') ?? -1;
+  if (!source || index < 0) throw new Error('AI Hackathon is unavailable this round.');
+  const [card] = source.splice(index, 1);
+  room.used.push(card);
+  receive(room, drawer, card);
+  return room;
 }
 function settle(room: Room) {
   room.prompt = null;

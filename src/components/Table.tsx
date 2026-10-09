@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { scoreHand } from '../../shared/scoring';
+import { isSoloBotRoom } from '../../shared/engine';
 import type { GameEvent, Player, Profile, PublicRoom } from '../../shared/types';
 import type { Command } from '../App';
 import { Avatar, PlayerStatus, Sunburst } from './ui';
@@ -416,6 +417,25 @@ export function Table({
           <span>Numbers 0–{room.settings.maxNumber}</span>
         </div>
       </div>
+      {host && isSoloBotRoom(room) && room.phase === 'playing' && !room.reversed && (
+        <div className="practice-hackathon">
+          <div className="practice-hackathon-copy">
+            <BrainCircuit size={22} />
+            <div>
+              <strong>Ready to flip the script?</strong>
+              <span>Practice shortcut · reveal the AI Hackathon card now.</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="button practice-hackathon-button"
+            disabled={busy}
+            onClick={() => void send('trigger-hackathon')}
+          >
+            Trigger AI Hackathon <Sparkles size={16} />
+          </button>
+        </div>
+      )}
       {room.reversed && (
         <div className="reverse-rules-strip" role="status">
           <BrainCircuit size={22} />

@@ -17,10 +17,12 @@ import {
   COLORS,
   createRoom,
   DEFAULT_SETTINGS,
+  isSoloBotRoom,
   log,
   makePlayer,
   startRound,
   toPublicRoom,
+  triggerHackathon,
 } from '../shared/engine';
 import type { GameAction, Profile, Room, RoomSummary } from '../shared/types';
 import { Store, type User } from './store';
@@ -475,6 +477,18 @@ export function createApplication(
         .map((p) => makePlayer(p.id, p.name, p.color, p.bot));
       next.version = room.version;
       room = next;
+      store.data.rooms[room.code] = room;
+    } else if (type === 'trigger-hackathon') {
+      requireHost(room, user.id);
+      if (!isSoloBotRoom(room))
+        throw new Error('The AI Hackathon shortcut is only available in solo bot games.');
+      if (version !== room.version)
+        throw new Error('The table just changed. Your view is refreshed; please try again.');
+      const drawer =
+        room.players.find((player) => player.id === user.id && player.status === 'active') ??
+        room.players.find((player) => player.status === 'active');
+      if (!drawer) throw new Error('No active player can receive the card.');
+      room = triggerHackathon(room, drawer.id);
       store.data.rooms[room.code] = room;
     } else if (type === 'action') {
       if (version !== room.version)

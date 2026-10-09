@@ -8,6 +8,7 @@ import {
   makePlayer,
   startRound,
   toPublicRoom,
+  triggerHackathon,
 } from '../shared/engine';
 import { scoreHand } from '../shared/scoring';
 import type { Card, CardKind, Room } from '../shared/types';
@@ -378,6 +379,31 @@ describe('end conditions and round settlement', () => {
   });
 });
 describe('AI Hackathon round reversal', () => {
+  it('reveals the physical card on demand without consuming the current turn', () => {
+    const r = fixture([4], [card(2), card(0, 'hackathon'), card(4)]);
+    r.prompt = { kind: 'guess', actorId: 'a' };
+    const before = structuredClone(r);
+    const revealed = triggerHackathon(r, 'a');
+    expect(r).toEqual(before);
+    expect(revealed.reversed).toBe(true);
+    expect(revealed.prompt).toEqual(before.prompt);
+    expect(revealed.turnId).toBe(before.turnId);
+    expect(revealed.deck.map((card) => card.kind)).toEqual(['number', 'number']);
+    expect(revealed.used.at(-1)?.kind).toBe('hackathon');
+    expect(revealed.events.at(-1)?.moment).toBe('hackathon');
+    expect(() => triggerHackathon(revealed, 'a')).toThrow('already active');
+  });
+
+  it('can reveal the card from prior-round discards during a practice round', () => {
+    const r = fixture([4], [card(2)]);
+    r.discards = [card(0, 'hackathon')];
+    const revealed = triggerHackathon(r, 'a');
+    expect(revealed.reversed).toBe(true);
+    expect(revealed.deck).toHaveLength(1);
+    expect(revealed.discards).toHaveLength(0);
+    expect(revealed.used.at(-1)?.kind).toBe('hackathon');
+  });
+
   it('reverses turn order and makes repeats safe while a new value busts', () => {
     let r = fixture([4], [card(0, 'hackathon'), card(4), card(5)]);
     r = applyAction(r, 'a', { type: 'draw' });
