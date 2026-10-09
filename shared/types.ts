@@ -1,4 +1,5 @@
-export type CardKind = 'number' | 'bonus' | 'double' | 'prediction' | 'flip3' | 'chance';
+export type CardKind =
+  'number' | 'bonus' | 'double' | 'prediction' | 'flip3' | 'chance' | 'hackathon';
 export interface Card {
   id: string;
   kind: CardKind;
@@ -37,7 +38,14 @@ export interface GameEvent {
   text: string;
   type: 'info' | 'draw' | 'bust' | 'bank' | 'special' | 'win';
   playerId?: string;
-  moment?: 'prediction-hit' | 'bust' | 'bank' | 'roulette-loss' | 'roulette-win';
+  moment?:
+    | 'prediction-hit'
+    | 'prediction-reverse-hit'
+    | 'bust'
+    | 'bank'
+    | 'roulette-loss'
+    | 'roulette-win'
+    | 'hackathon';
 }
 export interface RoundResult {
   round: number;
@@ -72,6 +80,7 @@ export interface Room {
   forced: { targetId: string; remaining: number; guess?: number } | null;
   advanceTurn: boolean;
   ending: boolean;
+  reversed: boolean;
   events: GameEvent[];
   history: RoundResult[];
   createdAt: number;

@@ -48,6 +48,7 @@ export function createRoom(code: string, name: string, host: Player, settings: R
     forced: null,
     advanceTurn: false,
     ending: false,
+    reversed: false,
     events: [],
     history: [],
     createdAt: Date.now(),
@@ -67,6 +68,7 @@ export function buildDeck(max: number): Card[] {
     for (let i = 0; i < 3; i++) add(kind, 0);
   for (const value of [2, 4, 6, 8, 10]) add('bonus', value);
   add('double', 2);
+  add('hackathon', 0);
   return cards;
 }
 export function shuffle<T>(items: T[], random: Random): T[] {
@@ -115,6 +117,7 @@ export function startRound(room: Room, random: Random = Math.random): Room {
   room.phase = 'playing';
   room.tied = false;
   room.ending = false;
+  room.reversed = false;
   room.prompt = null;
   room.forced = null;
   room.effects = [];
@@ -163,14 +166,18 @@ function receive(room: Room, player: Player, card: Card, guess?: number) {
   if (card.kind === 'number') {
     log(room, `${player.name} drew ${card.value}.`, 'draw');
     const duplicate = player.hand.some((c) => c.kind === 'number' && c.value === card.value);
+    const hasNumber = player.hand.some((c) => c.kind === 'number');
     if (guess !== undefined) {
-      if (guess === card.value) {
+      if ((guess === card.value) !== room.reversed) {
         player.predictionMultiplier *= 3;
         log(
           room,
-          `Right on! ${player.name} predicted ${card.value} and now has ×${player.predictionMultiplier}.`,
+          `${room.reversed ? 'Wrong is right!' : 'Right on!'} ${player.name} ${room.reversed ? 'missed' : 'predicted'} ${card.value} and now has ×${player.predictionMultiplier}.`,
           'special',
-          { playerId: player.id, moment: 'prediction-hit' },
+          {
+            playerId: player.id,
+            moment: room.reversed ? 'prediction-reverse-hit' : 'prediction-hit',
+          },
         );
       } else {
         for (const held of player.hand) {
@@ -181,31 +188,56 @@ function receive(room: Room, player: Player, card: Card, guess?: number) {
         player.predictionMultiplier = 1;
         log(
           room,
-          `${player.name} predicted ${guess}, but drew ${card.value}. All held numbers freeze and score modifiers reset.`,
+          `${player.name} predicted ${guess} and drew ${card.value}. ${room.reversed ? 'A correct call backfires!' : 'A miss!'} All held numbers freeze and score modifiers reset.`,
           'special',
         );
       }
     }
-    if (duplicate) {
+    const hazard = room.reversed ? hasNumber && !duplicate : duplicate;
+    if (hazard) {
       const protection = player.hand.findIndex((c) => c.kind === 'chance');
       if (protection >= 0) {
         player.hand.splice(protection, 1);
-        log(room, `Second Chance saved ${player.name} from a duplicate ${card.value}.`, 'special');
+        log(
+          room,
+          `Second Chance saved ${player.name} from ${room.reversed ? 'a new' : 'a duplicate'} ${card.value}.`,
+          'special',
+        );
       } else {
         player.hand.push(card);
         player.status = 'busted';
         player.roundScore = 0;
-        log(room, `${player.name} busted on a duplicate ${card.value}.`, 'bust', {
-          playerId: player.id,
-          moment: 'bust',
-        });
+        log(
+          room,
+          `${player.name} busted on ${room.reversed ? 'a new' : 'a duplicate'} ${card.value}.`,
+          'bust',
+          {
+            playerId: player.id,
+            moment: 'bust',
+          },
+        );
       }
     } else player.hand.push(card);
-    if (player.status === 'active' && scoreHand(player).count >= 10)
+    if (player.status === 'active' && scoreHand(player, room).count >= 10)
       forceEnding(
         room,
         `${player.name} reached ten! Everyone gets a final Bank or Roulette choice.`,
       );
+    return;
+  }
+  if (card.kind === 'hackathon') {
+    room.reversed = true;
+    for (const banked of room.players.filter((p) => p.status === 'banked'))
+      banked.roundScore = scoreHand(banked, room).total;
+    log(
+      room,
+      `${player.name} played AI Hackathon. Every hand flips to reverse rules for the rest of the round!`,
+      'special',
+      {
+        playerId: player.id,
+        moment: 'hackathon',
+      },
+    );
     return;
   }
   if (card.kind === 'prediction' || card.kind === 'flip3') {
@@ -243,8 +275,8 @@ function settle(room: Room) {
   room.effects = [];
   room.opening = [];
   for (const p of room.players) {
-    p.roundScore = scoreHand(p).total;
-    p.qualified = p.status === 'banked' && scoreHand(p).count >= 7 && p.roulette !== 0;
+    p.roundScore = scoreHand(p, room).total;
+    p.qualified = p.status === 'banked' && scoreHand(p, room).count >= 7 && p.roulette !== 0;
     p.total += p.roundScore;
   }
   room.history.push({
@@ -321,7 +353,11 @@ function pump(room: Room, random: Random) {
     const current = room.players.findIndex((p) => p.id === room.turnId);
     if (room.advanceTurn || room.players[current]?.status !== 'active') {
       for (let offset = 1; offset <= room.players.length; offset++) {
-        const next = room.players[(Math.max(current, 0) + offset) % room.players.length];
+        const next =
+          room.players[
+            (Math.max(current, 0) + (room.reversed ? -offset : offset) + room.players.length * 2) %
+              room.players.length
+          ];
         if (next.status === 'active') {
           room.turnId = next.id;
           break;
@@ -336,7 +372,7 @@ function pump(room: Room, random: Random) {
 function bank(room: Room, player: Player, roulette: boolean, random: Random) {
   player.roulette = roulette ? (random() < 0.5 ? 0 : 2) : 1;
   player.status = 'banked';
-  player.roundScore = scoreHand(player).total;
+  player.roundScore = scoreHand(player, room).total;
   log(
     room,
     roulette
@@ -367,11 +403,20 @@ export function applyAction(
       if (target.status !== 'active') throw new Error('Choose a player still in this round.');
       log(
         room,
-        `${player.name} chose ${target.name} for ${prompt.effect === 'prediction' ? 'Prediction' : 'Flip Three'}.`,
+        `${player.name} chose ${target.name} for ${prompt.effect === 'prediction' ? 'Prediction' : room.reversed ? 'Reverse Flip Three' : 'Flip Three'}.`,
         'special',
       );
       room.prompt = prompt.effect === 'prediction' ? { kind: 'guess', actorId: target.id } : null;
-      if (prompt.effect === 'flip3') room.forced = { targetId: target.id, remaining: 3 };
+      if (prompt.effect === 'flip3') {
+        if (room.reversed) {
+          const discarded = target.hand.splice(-3);
+          log(
+            room,
+            `${target.name} discarded ${discarded.length} held card${discarded.length === 1 ? '' : 's'} in Reverse Flip Three.`,
+            'special',
+          );
+        } else room.forced = { targetId: target.id, remaining: 3 };
+      }
     } else if (prompt.kind === 'guess' && action.type === 'guess') {
       if (
         !Number.isInteger(action.value) ||
@@ -403,7 +448,9 @@ export function botAction(room: Room, actorId: string, random: Random = Math.ran
   if (room.prompt?.kind === 'target') {
     const targets = active(room);
     const self =
-      room.prompt.effect === 'flip3' && scoreHand(p).count < 3 && !p.hand.some((c) => c.frozen);
+      room.prompt.effect === 'flip3' &&
+      scoreHand(p, room).count < 3 &&
+      !p.hand.some((c) => c.frozen);
     return {
       type: 'target',
       targetId: self
@@ -411,13 +458,18 @@ export function botAction(room: Room, actorId: string, random: Random = Math.ran
         : (
             targets
               .filter((t) => t.id !== actorId)
-              .sort((a, b) => scoreHand(b).subtotal - scoreHand(a).subtotal)[0] ?? p
+              .sort((a, b) => scoreHand(b, room).subtotal - scoreHand(a, room).subtotal)[0] ?? p
           ).id,
     };
   }
   if (room.prompt?.kind === 'guess')
-    return { type: 'guess', value: room.settings.maxNumber - Math.floor(random() * 3) };
-  const score = scoreHand(p);
+    return {
+      type: 'guess',
+      value: room.reversed
+        ? Math.floor(random() * 3)
+        : room.settings.maxNumber - Math.floor(random() * 3),
+    };
+  const score = scoreHand(p, room);
   const bankNow =
     room.prompt?.kind === 'bank' ||
     score.subtotal >= 42 ||
