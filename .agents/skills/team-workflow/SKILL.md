@@ -25,6 +25,9 @@ Missing product documents are not a reason to create them without a request.
   authorize writing `SPEC.md` or implementing it.
 - Use stable `AC-XX` IDs. The team assigns `SP-XX` IDs to agreed spikes. Never
   reassign existing IDs or treat template examples as requirements.
+- Approval applies to explicitly agreed decisions, not the existence of a spec
+  file. Turn rules needed for the next slice into concrete input/output examples;
+  leave other open decisions pending. Owners need not review source code.
 
 ## Run an agreed spike
 
@@ -54,6 +57,11 @@ Missing product documents are not a reason to create them without a request.
 - Implement within the agreed boundaries and verify the outcome. An explicit
   implementation request is enough to proceed; do not request approval again
   for the same work. Keep any useful execution plan inside the slice record.
+- Read [QUALITY.md](../../../QUALITY.md) for applicable verification layers.
+  Establish expected behavior before coding; add failure cases and inspect the
+  diff for regressions. Fix task-related failures without weakening the oracle.
+  The first application slice must wire real stack commands and automatic
+  application CI; a setup check is not evidence of a working game.
 - Update Check with observed evidence and Resume with what remains. Use
   `Blocked` for a real impediment; `Ready for acceptance` when required checks
   pass and the branch includes current `main`. Only the engineer's acceptance
@@ -68,6 +76,10 @@ Missing product documents are not a reason to create them without a request.
 - Map each requested criterion or behavior to an appropriate existing test or
   manual procedure. Use verified project commands, inspect the actual output,
   and distinguish passed, failed, blocked, and not checked results.
+- Run the documented verification entry point and relevant behavior checks.
+  Inspect raw results, including retries, missing tests, and skipped checks.
+  Link the report and browser evidence; a success claim is not an observation.
+  Highlight changes to the checks themselves.
 - Record the tested commit or working-tree changes and environment. Follow
   README's Git update procedure before reporting implementation readiness.
   Identify gaps even when the build succeeds. Verify other agents' results
@@ -76,6 +88,9 @@ Missing product documents are not a reason to create them without a request.
   checks on `main`, use [the check template](../../../templates/CHECK.md) to
   create or append to `CHECK.md`. Preserve previous checks and other owners'
   entries. For small standalone tasks, the chat handover is sufficient.
+- Give the owner a short user walkthrough and AC-linked evidence for acceptance.
+  Report whole-MVP gaps separately from slice readiness. An automated test run
+  is neither owner acceptance nor a hosted-network rehearsal.
 
 Keep documents short: remove unused template headings and comments, reference
 IDs instead of copying requirements, and write current evidence and next steps

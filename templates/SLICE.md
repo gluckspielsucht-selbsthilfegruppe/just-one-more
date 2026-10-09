@@ -18,6 +18,10 @@ checks and a branch current with main. Keep failed or missing checks visible. --
 
 [Relevant AC-XX items and slice-specific examples.]
 
+| Approved example | Input / action | Expected visible result or exact value |
+|---|---|---|
+| [AC-XX, including a relevant failure case] | [Controlled setup and action] | [Owner-agreed result, independent of implementation] |
+
 ## Boundaries
 
 [What is included and excluded. Assigned files or directories, shared interfaces
@@ -32,12 +36,19 @@ and agreed deviations. Keep current; omit for a straightforward task.]
 
 Tested state: [Commit plus any uncommitted changes, environment]
 Main included: [Latest fetched origin/main commit included, or update blocker]
+Evidence: [Verification report/CI run and useful browser trace or screenshot]
 
 | Criterion / behavior | Performed | Result and evidence |
 |---|---|---|
 | [AC-XX or agreed slice example] | [Exact command or manual/browser steps] | [Passed / Failed / Blocked / Not checked; observed result] |
 
 Not checked: [Explicit gaps]
+Changes to checks/expected results: [Reason and approval if expectations changed]
+
+## Owner acceptance
+
+Walkthrough: [Demo/preview and a short sequence the owner can play without reading code]
+Decision: [Pending / Accepted by owner, with tested revision]
 
 ## Resume
 

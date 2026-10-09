@@ -6,7 +6,8 @@
   Carry an authorized task through implementation and verification; decide
   routine, reversible details without asking again.
 - Planning starts when requested. `templates/` contains unfilled templates,
-  not requirements. Once `SPEC.md` exists, it is the agreed target.
+  not requirements. Explicitly approved requirements in `SPEC.md` are the
+  target; file existence does not approve draft criteria or open decisions.
 - Before substantial work, inspect the branch and working tree, then read only
   the relevant `SPEC.md` sections, assigned slice, referenced spikes, relevant
   failures in `CHECK.md`, and setup/commands in `README.md`, when they exist.
@@ -49,6 +50,16 @@
   appropriate checks, inspect their output, and fix failures caused by this
   task. A passing build or another agent's success message is not evidence
   that the requested behavior works.
+- Follow [QUALITY.md](QUALITY.md) for implementation and acceptance checks.
+  Use approved input/output examples as the test oracle. Do not derive
+  expected results from the implementation being tested. Cover relevant
+  failure cases as well as the happy path.
+- Never make a check green by weakening an assertion, skipping a required
+  test, accepting a new snapshot, or changing the expected rules without
+  explaining the reason and obtaining approval for a changed expectation.
+- Highlight changes to tests, CI, verification scripts, and acceptance criteria
+  in the handover. Do not claim product readiness from a setup check. Missing,
+  blocked, or flaky required checks prevent readiness.
 - Before reporting readiness, update from `main` as described in `README.md`
   and rerun relevant checks. Report blocked checks and untested behavior.
 - Keep records short and tied to the tested commit or working-tree state.
@@ -56,3 +67,16 @@
   The engineer decides when a slice is done.
 - Handover: what changed; checks and results; remaining uncertainty; decisions
   needed; proposed document changes outside your assignment. Omit empty items.
+- Make acceptance possible without reading code: provide a runnable demo or
+  preview, AC-linked results, failure evidence, and a short owner walkthrough.
+  The owner accepts observable behavior; the agent checks implementation.
+
+## Review priorities
+
+- Review agreed rules and transitions against independent examples; look for
+  scoring, duplicate, frozen-card, and end-condition errors.
+- Check that one authority validates actions and that repeated, stale, or
+  cross-room actions cannot corrupt state or disclose another room's data.
+- Check that test controls and credentials are absent from the public game.
+  Report consequential findings with a reproduction or specific evidence.
+  AI review supports tests and owner acceptance; it cannot replace them.

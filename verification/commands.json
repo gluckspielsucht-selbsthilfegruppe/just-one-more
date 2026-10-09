@@ -1,0 +1,6 @@
+{
+  "build": {"command": null, "timeout_seconds": 180},
+  "rules": {"command": null, "timeout_seconds": 120},
+  "realtime": {"command": null, "timeout_seconds": 120},
+  "browser": {"command": null, "timeout_seconds": 240}
+}

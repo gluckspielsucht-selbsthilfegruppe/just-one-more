@@ -19,9 +19,12 @@ Out: [To be agreed.]
 
 ## Acceptance criteria
 
-| ID | Observable behavior | How to verify |
-|---|---|---|
-| AC-01 | [Given a context, when an action occurs, expect this result.] | [Test or manual procedure; include a relevant failure case.] |
+<!-- Explicitly mark approval; a file or drafted criterion is not approval.
+Expected values come from agreed rules, not the code being tested. -->
+
+| ID | Status | Observable behavior | How to verify |
+|---|---|---|---|
+| AC-01 | [Draft / Approved by owner] | [Given a context, when an action occurs, expect this result.] | [Concrete input/output example, automated check, and any hosted/manual check; include a failure case.] |
 
 ## Shared interfaces
 

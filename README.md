@@ -5,8 +5,11 @@ actually runs. The team decides scope, shared interfaces, and acceptance. Use
 **Spec → optional Spike → Slice → Check** for new work; skip documents for a
 small fix with a clear expected result.
 
-This repository currently has workflow instructions and blank templates. It
-has no agreed product spec, application stack, or run commands yet.
+This repository has an initial [product spec](SPEC.md), workflow instructions,
+templates, and executable setup checks. Some scope is agreed; acceptance
+criteria and mechanics remain draft where marked. There is no application
+stack yet. [QUALITY.md](QUALITY.md) defines verification, current gaps, and
+the evidence owners use to accept work without reading source code.
 
 ## From idea to demo
 
@@ -18,7 +21,7 @@ flowchart TD
     C -- No --> E["One usable slice"]
     D --> E
     E --> F["Codex implements and verifies"]
-    F --> G["Engineer reviews and integrates"]
+    F --> G["Owner plays demo, checks evidence, and accepts"]
     G --> H["Check the full demo on main (CHECK.md)"]
     H -- Gap --> E
     H -- Works --> I["Demo and handover"]
@@ -51,8 +54,9 @@ contains formats, not product requirements.
   and how to verify it. Codex implements and checks that outcome. Use a short
   `slices/` record when coordination or resumption needs one; a small fix can
   be requested and checked directly.
-- **Check:** The engineer reviews the change and its evidence, accepts it,
-  and decides when to integrate. Run the complete demo on `main` and record
+- **Check:** The agent checks implementation and reports evidence. The owner
+  plays the walkthrough, accepts the behavior, and decides when to integrate.
+  Run the complete demo on `main` and record
   cross-slice results in `CHECK.md`. A passing build alone is not a demo check.
 
 ## Our 5–6 hour AI hackathon
@@ -114,6 +118,22 @@ owner's work or an agreed decision, ask the team; report any update blocker.
 
 ## Project setup and commands
 
-There are no install, run, build, or test commands yet. Add commands verified
-against this repository after the team chooses the stack. For workflow-only
-edits, inspect the Markdown and local links, then run `git diff --check`.
+The setup tools require Git and Python 3.11 or newer, with no extra packages.
+Run from the repository root:
+
+| Command | Purpose |
+|---|---|
+| `python3 scripts/verify.py setup` | Check repository links, AC IDs, configuration, tracked whitespace, and verification-tool regression tests. |
+| `python3 scripts/verify.py setup --base origin/main` | Include committed branch changes in whitespace checks after fetching `origin/main`. |
+| `python3 scripts/verify.py product` | Run application checks; currently returns **Blocked** (exit 2) because the application does not exist. |
+| `python3 scripts/verify.py self-test` | Exercise verification-tool failure handling directly; fails if no tests are found. |
+
+Read `.artifacts/verification/setup/report.md` or
+`.artifacts/verification/product/report.md` for the latest results. JSON reports
+and command logs are alongside them; generated evidence is Git-ignored.
+
+There are no application install/run/build commands yet. The first application
+slice must verify and document them, populate
+[verification/commands.json](verification/commands.json), and enable automatic
+product CI as described in [QUALITY.md](QUALITY.md#ci-and-integration).
+A green **Repository setup** job does not certify the MVP.

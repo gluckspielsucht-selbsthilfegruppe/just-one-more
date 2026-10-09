@@ -1,0 +1,83 @@
+name: Verification
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      product:
+        description: Run product checks (blocked until real suites are configured)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Repository setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+      - name: Verify repository setup
+        env:
+          VERIFICATION_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD' }}
+        run: |
+          if [[ "$VERIFICATION_BASE" =~ ^0+$ ]]; then
+            VERIFICATION_BASE=$(git hash-object -w -t tree /dev/null)
+          fi
+          python3 scripts/verify.py setup --base "$VERIFICATION_BASE"
+      - name: Publish summary
+        if: always()
+        run: cat .artifacts/verification/setup/report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain evidence and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: setup-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/verification/setup/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  product:
+    name: Automated product checks
+    # First application slice: add approved install steps and remove this
+    # condition so this job runs on every PR and main. Until then it is manual,
+    # not a required application gate. Never replace missing suites with a stub.
+    if: github.event_name == 'workflow_dispatch' && inputs.product
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+      - name: Verify application
+        run: python3 scripts/verify.py product
+      - name: Publish summary
+        if: always()
+        run: cat .artifacts/verification/product/report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain evidence and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: product-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/verification/product/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
