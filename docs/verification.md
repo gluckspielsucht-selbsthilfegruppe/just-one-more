@@ -30,3 +30,14 @@ The LAN endpoint was also reachable from the host via its printed network addres
 Start the server and use four browser profiles, or use four distinct `*.localhost` origins on one machine (modern browsers resolve these locally). On physical devices, use the printed LAN URL. Create a room, join all four seats, mark ready, and start. Compare each player’s hand and the event feed after a draw. Refresh one browser during a round, then finish the round and compare totals. Test a practice game to exercise automatic opponents.
 
 For rules with rare random triggers, run the controlled automated fixtures instead of relying on repeatedly drawing a particular card.
+
+## Quick Tunnel verification (2026-10-09)
+
+- Both the base Compose configuration and the merged `compose.yaml` + `compose.tunnel.yaml` configuration validate. Local mode keeps `COOKIE_SECURE=false`; tunnel mode sets it to `true` and waits for the app health check.
+- The pinned `cloudflare/cloudflared:2026.10.0` image was pulled and started with an isolated `just-one-more-tunnel-check` Compose project and its own data volume. The production app became healthy before the tunnel started.
+- The production page, `/api/health`, session creation, and `Secure`, `HttpOnly`, `SameSite=Strict` cookie flags passed checks in the running app container.
+- `npm run check` passed in the Docker build stage: strict TypeScript plus all 46 tests, including the seven real HTTP/WebSocket integration tests. The production build was reused from Docker's unchanged build cache.
+- **Public connectivity is not verified on this network.** Quick Tunnel provisioning succeeded, but `cloudflared` reported that both Cloudflare regions were unreachable over UDP and TCP port 7844. DNS resolution and the Cloudflare API were reachable. Automatic protocol selection is explicitly enabled so networks that block UDP can fall back to HTTP/2 over TCP.
+- The isolated verification containers were stopped afterward. No existing game-data volume was used. Cloudflare acceptance criteria AC-01/AC-06 are not claimed as passed.
+
+On a network permitting outbound Cloudflare tunnel traffic, use the README's tunnel startup command and open the newest HTTPS URL in four separate browser profiles or devices. Create a table from that URL, join the other three players, ready up, complete a round, compare results, and refresh one player to verify seat recovery. Include the actual presentation Wi-Fi or mobile network paths, then stop the tunnel using the documented command.

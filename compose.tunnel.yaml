@@ -1,0 +1,14 @@
+# Optional public HTTPS access:
+# docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d
+services:
+  app:
+    environment:
+      COOKIE_SECURE: 'true'
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.0
+    command: tunnel --no-autoupdate --protocol auto --url http://app:3000
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped

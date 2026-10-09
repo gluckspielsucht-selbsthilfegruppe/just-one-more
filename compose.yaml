@@ -1,3 +1,4 @@
+# For internet multiplayer, also load compose.tunnel.yaml (see README.md).
 services:
   app:
     build: .
