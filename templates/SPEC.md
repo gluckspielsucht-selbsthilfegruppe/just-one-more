@@ -19,7 +19,9 @@ Out: [To be agreed.]
 
 ## Acceptance criteria
 
-[Observable criteria with IDs AC-01, AC-02, and so on.]
+| ID | Observable behavior | How to verify |
+|---|---|---|
+| AC-01 | [Given a context, when an action occurs, expect this result.] | [Test or manual procedure; include a relevant failure case.] |
 
 ## Shared interfaces
 
@@ -29,4 +31,9 @@ rely on. Agree these before splitting into individual work.]
 ## Spikes
 
 [Unknowns that need a spike, with IDs SP-01, SP-02, and so on,
-owner, and a link to spikes/SP-XX-name.md.]
+owner, timebox/checkpoint, and the spike file path. Link it once created.]
+
+## Open decisions
+
+[Unresolved questions and who decides. These are not approved requirements.
+Remove this section when no decisions remain.]

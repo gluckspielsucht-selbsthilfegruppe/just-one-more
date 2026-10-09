@@ -1,97 +1,58 @@
 # Agent Working Agreement
 
-## Context
+## Start with the task
 
-templates/ contains unfilled templates, not requirements.
-Planning starts only when an engineer asks.
-Once SPEC.md exists, it is the agreed target.
+- Engineers own scope, priorities, shared interfaces, and acceptance.
+  Carry an authorized task through implementation and verification; decide
+  routine, reversible details without asking again.
+- Planning starts when requested. `templates/` contains unfilled templates,
+  not requirements. Once `SPEC.md` exists, it is the agreed target.
+- Before substantial work, inspect the branch and working tree, then read only
+  the relevant `SPEC.md` sections, assigned slice, referenced spikes, relevant
+  failures in `CHECK.md`, and setup/commands in `README.md`, when they exist.
+  Ordinary Markdown files are not automatically loaded as instructions.
+- If documents conflict, name the conflict and ask. Reread shared decisions
+  when told they changed. Do not invent missing project decisions or commands.
 
-Files are not loaded automatically. Before substantial work, read:
-1. The relevant sections of SPEC.md.
-2. Your slice file in slices/, if any.
-3. Referenced files in spikes/ and relevant failures in CHECK.md.
-4. README.md for setup and workflow.
+## Choose the amount of process
 
-Read only what is relevant. When told a shared decision changed, reread it.
-If documents conflict, name the conflict and ask.
+- For a small, clearly requested fix or documentation change, implement and
+  check it directly. A spec, spike, or slice file is not a prerequisite.
+- For planning, spikes, slice implementation/resumption, or acceptance checks,
+  use the repository's `team-workflow` skill. If it is not listed, read
+  [.agents/skills/team-workflow/SKILL.md](.agents/skills/team-workflow/SKILL.md).
+- Follow only the requested stage. Proposing work is not approval to implement
+  it; implementing agreed work does not need a second approval to begin.
 
-## Decisions
+## Boundaries
 
-Engineers own scope, priorities, shared interfaces, and acceptance.
+- Ask before an unapproved change to scope, shared interfaces, dependencies,
+  architecture, or another contributor's work. Continue independent work
+  while a consequential decision is pending.
+- Edit assigned files only. Edit `SPEC.md` only when its writing engineer asks;
+  edit `templates/` only when requested. Propose other document changes in the
+  handover. Never overwrite or revert another contributor's work.
+- Keep implementation within the task; avoid unrelated refactoring. Spike code
+  is experimental and must not be merged into `main` as-is.
+- Use the engineer's chosen branch. Commit to `main` only when told to.
+  Push, open, or merge pull requests only when asked. Never force-push or
+  rewrite `main` or another contributor's branch. Follow
+  [Git and integration](README.md#git-and-integration).
+- Use one agent by default. Delegate only when requested; concurrent coding
+  agents need separate worktrees or clones and explicit file ownership.
 
-- Do not invent requirements or treat proposals as decisions.
-- Do not expand scope or claim other work without agreement.
-- Do not force certainty where a spike is needed.
-- Ask about consequential ambiguity; decide routine, reversible details yourself.
-- Ask before changing scope, shared interfaces, dependencies, architecture,
-  or another contributor's work.
+## Verify and hand over
 
-## Spike
-
-- Stay within the agreed question and timebox. You cannot track time
-  reliably; rely on the engineer's checkpoint.
-- Record observations separately from conclusions.
-  Inconclusive is a valid result.
-- Spike code is not accepted implementation.
-- If findings affect scope, propose a SPEC.md change.
-
-## Slice
-
-- Implement only the agreed slice. Prefer small outcomes that run on `main`.
-- Avoid unrelated refactoring and speculative abstractions.
-
-## Check
-
-- Check against the referenced acceptance criteria.
-- Run real checks and inspect the results. A passing build is not proof.
-- State what failed, was blocked, or was not checked.
-- Never claim actions you did not perform or trust another agent's
-  success message as evidence.
-- Note the tested commit or working-tree state. Do not paste large logs.
-- The engineer decides when a slice is done.
-
-## Documents
-
-Create documents from templates/ only when the engineer needs one:
-
-| Template | Create as | Owner |
-|---|---|---|
-| templates/SPEC.md | SPEC.md | Whole team |
-| templates/SPIKE.md | spikes/SP-XX-short-name.md | Spike owner |
-| templates/SLICE.md | slices/SL-<initial><n>-short-name.md | Slice owner |
-| templates/CHECK.md | CHECK.md (integrated checks only) | Engineer running the check |
-
-- Edit only files your engineer owns or assigns to you.
-  Propose other changes in your handover.
-- Edit SPEC.md only when the engineer writing it asks.
-- Never overwrite, revert, or "clean up" another contributor's work.
-- Do not edit templates/ unless asked.
-- Keep entries short. Remove template comments and unused headings.
-- Reference IDs instead of copying content.
-- IDs: AC-XX in SPEC.md, SP-XX from the team session, SL-<initial><n>
-  chosen by the slice owner (e.g. SL-L1). Never reassign IDs.
-
-## Git
-
-Follow "Git and integration" in README.md. In particular:
-- Work on the branch your engineer chose. Commit to `main` only when told to.
-- Never force-push or rewrite `main` or another contributor's branch.
-- Do not merge spike code into `main` as-is.
-- Before reporting work as ready, update from `main` and rerun the relevant checks.
-- Push, open, or merge pull requests only when the engineer asks.
-
-## Working style
-
-- Debug by reproducing, forming a hypothesis, and testing it.
-  Do not stack speculative fixes.
-- Use only verified commands from README.md or the repository.
-  Report tool and permission limits honestly.
-
-## Handover
-
-Report concisely:
-1. What changed
-2. Verification performed and results
-3. Remaining uncertainty or limitations
-4. Any decision required
-5. Proposed document updates, if you were not authorized to edit them
+- Debug by reproducing, forming a hypothesis, and testing it. Use commands
+  verified in `README.md` or repository scripts/configuration.
+- Check the requested behavior and relevant acceptance criteria. Run the
+  appropriate checks, inspect their output, and fix failures caused by this
+  task. A passing build or another agent's success message is not evidence
+  that the requested behavior works.
+- Before reporting readiness, update from `main` as described in `README.md`
+  and rerun relevant checks. Report blocked checks and untested behavior.
+- Keep records short and tied to the tested commit or working-tree state.
+  Update an assigned slice's check/resume notes at meaningful checkpoints.
+  The engineer decides when a slice is done.
+- Handover: what changed; checks and results; remaining uncertainty; decisions
+  needed; proposed document changes outside your assignment. Omit empty items.

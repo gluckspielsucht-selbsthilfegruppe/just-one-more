@@ -1,104 +1,179 @@
-# Just One More — Team Workflow
+# Just One More — Codex Workflow
 
-## Method
+Use Codex to take a clear task from investigation through implementation and
+verification. Engineers decide what to build, agree on shared interfaces, and
+accept the result. Keep the existing **Spec → optional Spike → Slice → Check**
+method, using only the stages that help the task.
 
-- **Spec:** agree on goal, scope, and acceptance criteria, together.
-- **Spike:** a timeboxed experiment on a consequential unknown. Optional.
-- **Slice:** a small increment that runs on `main`, usually by one engineer.
-- **Check:** verify a slice or the integrated app with evidence.
+This repository currently contains the workflow and templates. No application
+stack or product specification has been selected.
 
-It is iterative, not a waterfall. Skip stages that do not help a task.
+## Start here
 
-## Files
+Open this repository in Codex. Give it an outcome, relevant file or acceptance
+references, important boundaries, and a way to verify success. Name the branch
+you want it to use when assigning implementation work.
 
-| File | Purpose | Written by |
+For a small fix, ask directly:
+
+> Fix [observed problem]. Expected behavior: [result]. Work on [branch].
+> Verify with [reproduction or existing check].
+
+For planned work, invoke the repository skill:
+
+> $team-workflow Implement slices/SL-Y1-name.md on codex/SL-Y1-name.
+> Run the relevant checks and update the slice's evidence and resume notes.
+
+These are examples; replace the placeholders with the actual task. A clear
+implementation request authorizes the local work and its checks. Codex should
+ask when a new consequential decision is needed, not at every step.
+
+## How Codex uses these files
+
+| File | Role | When to read or write |
 |---|---|---|
-| AGENTS.md | Instructions for coding agents | Team |
-| README.md | Workflow, setup, and commands | Team |
-| templates/ | Templates for the files below | Team, by agreement |
-| SPEC.md | Goal, scope, acceptance criteria, shared interfaces, spikes | One engineer in the team session; later changes need team agreement |
-| spikes/SP-XX-name.md | One experiment and its conclusion | Spike owner |
-| slices/SL-<initial><n>-name.md | One slice and its check | Slice owner |
-| CHECK.md | Integrated checks on `main` | Whoever runs the check |
+| [AGENTS.md](AGENTS.md) | Short, persistent repository rules | Loaded by Codex's instruction discovery |
+| [team-workflow skill](.agents/skills/team-workflow/SKILL.md) | Procedures for planning, spikes, slices, and checks | Loaded when the requested work calls for it |
+| [README.md](README.md) | Human workflow, setup, and commands | Relevant sections before work |
+| [templates/](templates/) | Starting formats, with no agreed requirements | Read only the template for a document being created |
+| `SPEC.md` | Agreed goal, scope, acceptance criteria, and shared interfaces | Written by the designated engineer when requested |
+| `spikes/SP-XX-name.md` | One experiment and its findings | Owned by the spike engineer |
+| `slices/SL-<initial><n>-name.md` | Outcome, boundaries, evidence, and next action | Owned by the slice engineer |
+| `CHECK.md` | Checks across integrated slices on `main` | Written by the engineer running the integrated check |
 
-Write short entries at decisions and handovers, not activity logs.
+Codex discovers `AGENTS.md` along its instruction path. Other project documents
+need to be read explicitly. Repo skills live in `.agents/skills/`; Codex first
+sees their metadata and loads the full instructions when used. See the official
+[AGENTS.md guide](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+and [skills guide](https://learn.chatgpt.com/docs/build-skills).
 
-## Before starting
+After changing `AGENTS.md`, start a new session or explicitly tell a running
+agent to reread it. If the skill does not appear, restart Codex; you can also
+ask it to read the linked `SKILL.md` directly. No global configuration change,
+additional service, or plugin installation is required for this repo workflow.
 
-Check that your assistant loads AGENTS.md, then run:
+## Choose the workflow
 
-> Read AGENTS.md and templates/. Summarize the working method, list the
-> unmade project decisions, and say what you would read before implementing
-> a slice. Do not edit files.
+| Task | Approach | Durable record |
+|---|---|---|
+| Small fix or documentation change with clear scope | Implement, check, hand over | Chat result; update an existing assigned document if useful |
+| New feature with unresolved scope or interfaces | Plan with the engineer first | `SPEC.md` when requested |
+| Consequential technical unknown | Run an agreed, bounded experiment | Spike file |
+| Agreed increment spanning steps or sessions | Implement and verify one slice | Slice file |
+| Integrated behavior before sharing | Check the app on `main` | `CHECK.md` |
 
-It should treat templates/ as templates, not requirements.
+### Agree on the target
 
-## Workflow
+Describe the idea and constraints. Agree on the goal, scope, observable
+acceptance criteria, and shared interfaces. Use Codex's Plan mode if you want
+investigation and a proposal before edits. The designated engineer asks Codex
+to create or update `SPEC.md` using [templates/SPEC.md](templates/SPEC.md).
+An in-chat plan helps execution; the spec records agreed decisions.
+Changes to agreed scope or shared interfaces need team agreement before the
+designated engineer updates the spec.
 
-Together:
+Give acceptance criteria stable `AC-XX` IDs and a practical verification
+method. Identify consequential unknowns for optional spikes with `SP-XX` IDs,
+owners, and checkpoints. Keep proposals and open questions distinct from
+decisions. Commit the agreed spec when the engineer requests it.
 
-1. Describe the idea and the real constraints.
-2. Agree on goal, scope, and acceptance criteria.
-   One engineer writes SPEC.md; the others give input.
-3. Agree on the shared interfaces individual work will rely on.
-4. Identify the important spikes, each with an owner and a timebox.
-5. Commit SPEC.md.
+### Investigate an unknown
 
-Individually:
+Agree on the question, smallest experiment, owner, and timebox/checkpoint.
+Use [templates/SPIKE.md](templates/SPIKE.md). Separate observations from
+conclusions and keep evidence reproducible. An inconclusive result is useful;
+the engineer controls the checkpoint. Propose scope or interface changes for
+agreement before adopting them. Rebuild useful experimental code in a slice.
 
-6. Run spikes. Inconclusive is a valid result; spike code is not product code.
-7. Create, implement, and check slices. A passing build is not proof.
-8. Merge to `main` often.
-9. Before sharing the result, check the integrated app on `main` and record it in CHECK.md.
+### Implement one slice
 
-Scope and shared interfaces are decided together; slice owners decide the rest.
-Raise new consequential unknowns with the team.
+Agree on a small outcome that can run on `main`, acceptance references, file
+ownership, and branch. The owner chooses a stable `SL-<initial><n>` ID, such as
+`SL-Y1`, and uses [templates/SLICE.md](templates/SLICE.md) when a slice record
+helps coordination or resumption.
 
-When a shared decision changes, update the file, tell the team, and tell
-running agents to reread it. Agents do not notice file changes on their own.
+Codex reads the relevant context, implements within those boundaries, runs
+checks, and fixes task-related failures. Keep any execution plan in the slice
+short. Update it when the approach changes; do not duplicate it into a second
+plan document. Missing shared decisions should be raised while independent
+work continues.
+
+Use `Ready for acceptance` only when the relevant checks pass and the branch
+is current with `main`. Keep limitations visible. The engineer marks the slice
+`Done` or asks Codex to do so after acceptance.
+
+### Verify, review, and resume
+
+Tie check evidence to the relevant `AC-XX` or requested behavior. Record the
+command or manual steps, observed result, environment, and exact tested state.
+Use the slice's Check section for slice verification and
+[templates/CHECK.md](templates/CHECK.md) for integrated checks on `main`.
+A build alone does not verify a user interaction; exercise it when relevant.
+
+Before accepting a change, inspect the diff and evidence. A separate review
+request can help find regressions, but does not replace running checks.
+
+For a later session, point Codex at the slice. Its Resume section should hold
+only the current state, next action, and pending decisions. Codex verifies the
+actual branch and files before continuing, since notes may be stale. When a
+shared decision changes, update its source and tell affected agents to reread
+it. Keep records at decisions and handovers, not as activity logs.
 
 ## Git and integration
 
-The shared repository is hosted on GitHub. `main` is the integration branch.
+The shared repository is on GitHub; `main` is the integration branch.
 
-Rules:
-
-- Keep `main` runnable.
-- Never force-push to or rewrite the history of `main`.
-- Do not merge spike code into `main` as-is.
-  Rebuild what is worth keeping in a slice.
-
-Defaults (use judgement):
-
-- Work on short-lived branches and integrate often.
-- Pull requests are the usual way into `main`. No review is required;
-  the author merges after updating from `main` and running the app
-  or the relevant tests.
-- Small, safe changes, such as SPEC.md from the team session or
-  documentation fixes, may go directly to `main`.
-- Name branches and commits however is clear.
-  Mentioning the slice or spike ID helps.
-- Tell the team about shared-interface changes before merging them.
-- Give each concurrent coding agent its own worktree or clone.
+- Keep `main` runnable. Never force-push or rewrite shared history.
+- Work on the engineer's chosen branch. Prefer short-lived `codex/<task>`
+  branches unless the engineer names another. If none is assigned, inspect
+  first and establish a branch before substantial implementation.
+- Pull requests are the usual route into `main`. No independent review is
+  required by this workflow; the engineer decides acceptance and integration.
+  Codex pushes branches or opens/merges pull requests only when asked.
+- Small, safe changes may go directly to `main` when the engineer authorizes
+  the commit. Naming commits after the slice or spike can help traceability.
+- Before reporting readiness, fetch `origin/main` and check whether it is
+  already included in the task branch. If behind, merge it into the assigned
+  branch when that can preserve existing work, then rerun relevant checks.
+  Do not silently stash, reset, or overwrite uncommitted changes to do this.
+  Resolve conflicts within your assignment; ask about conflicting shared
+  decisions or another contributor's work. If updating is blocked, report the
+  tested base and limitation instead of claiming integration readiness.
+- Do not merge spike code as-is. Tell the team about agreed shared-interface
+  changes before merging their implementation.
+- Start with one coding agent. When parallel work is requested, give each
+  coding agent a separate worktree or clone, a bounded task, and explicit file
+  ownership. Verify the combined result after integration.
 
 ## Prompts
 
-AGENTS.md carries the rules, so prompts stay short. If your assistant does
-not load AGENTS.md automatically, start each prompt with "Read AGENTS.md."
+Use `$team-workflow` for the structured stages. Ordinary questions and small
+fixes can use plain prompts.
 
-- **Spec:** "We are starting planning. I'll give the idea and constraints
-  next. Help clarify goal, scope, acceptance criteria, shared interfaces,
-  and spikes. Create SPEC.md only when I ask."
-- **Spike:** "Help with spike SP-XX: [question]. Timebox: [limit].
-  Propose the smallest experiment, then record it in spikes/."
-- **Slice:** "Propose my next slice. After I agree, create its file in slices/."
-- **Implement:** "Implement SL-XX from slices/. Update its status and
-  return a handover."
-- **Check:** "Check SL-XX against its acceptance criteria and fill in its
-  Check section." Or: "Check the integrated app on `main` and record it
-  in CHECK.md."
+- **Plan:** "$team-workflow Help agree on [idea and constraints]. Propose
+  scope, acceptance criteria, interfaces, and unknowns. Do not edit files yet."
+- **Record decisions:** "$team-workflow Create SPEC.md from the decisions
+  we just agreed on. Keep unresolved questions explicit."
+- **Spike:** "$team-workflow Run SP-XX: [question] on [branch]. Timebox:
+  [limit]; checkpoint: [how we'll stop]. Record the experiment and evidence."
+- **Propose a slice:** "$team-workflow Propose my next slice for AC-XX.
+  Wait for agreement before creating files or implementing."
+- **Implement:** "$team-workflow Implement slices/SL-Y1-name.md on
+  codex/SL-Y1-name, verify it, and update its record."
+- **Resume:** "$team-workflow Resume slices/SL-Y1-name.md. Verify its
+  recorded state against the checkout, then continue the agreed work."
+- **Review:** "Review the current diff for regressions and missing acceptance
+  coverage. Report actionable findings with file references. Do not edit."
+- **Check integration:** "$team-workflow Check AC-XX and AC-YY on main and
+  record the observed results in CHECK.md."
 
 ## Project setup and commands
 
-No stack selected yet. Once chosen, add only verified install, run,
-and test commands here.
+No application stack has been selected, so there are no install, run, build,
+or test commands yet. Add commands verified against the repository when the
+stack is agreed. Do not infer commands from an example or install dependencies
+just to complete a workflow stage.
+
+For workflow-only edits, inspect the Markdown, check local links and skill
+metadata, and run `git diff --check`. Skill format validation and document
+review do not prove that Codex will follow every instruction in practice.

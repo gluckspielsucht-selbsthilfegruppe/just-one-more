@@ -6,8 +6,13 @@ Slice checks belong in the slice file. -->
 
 ## [Scope], [time]
 
-Tested state: [Commit on `main`, environment]
-Performed: [Tests, end-to-end run, user walkthrough]
-Result: [Passed / Failed / Blocked, with concise evidence]
+Tested state: [Commit on `main`, any uncommitted changes, environment]
+Checked by: [Engineer]
+Scope: [AC-XX references and slices covered]
+
+| Criterion / interaction | Performed | Result and evidence |
+|---|---|---|
+| [AC-XX or cross-slice behavior] | [Exact command or user walkthrough] | [Passed / Failed / Blocked / Not checked; observed result] |
+
 Not checked: [Explicit gaps]
 Next action: [What to fix, if anything]

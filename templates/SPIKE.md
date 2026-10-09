@@ -5,6 +5,7 @@ Omit headings that do not add value. -->
 
 Status: [Running / Concluded / Inconclusive]
 Owner: [Engineer]
+Branch: [Engineer's chosen branch or assigned worktree branch]
 Timebox: [Agreed limit and how it is tracked]
 
 ## Question and importance
@@ -18,10 +19,16 @@ Reference relevant AC-XX items.]
 
 ## Observations
 
-[What actually happened. Reference useful artifacts.]
+Tested state: [Commit or working-tree changes, environment]
+Performed: [Exact commands or reproducible steps]
+Observed: [What actually happened. Reference useful artifacts.]
 
 ## Conclusion and next action
 
 [What the evidence supports, confidence, and remaining uncertainty.
 Proposed next action and any SPEC.md change. Leave pending until agreed.
 Disposition of experimental code.]
+
+## Resume
+
+[Only if unfinished: current state, next experiment, and any pending decision.]
