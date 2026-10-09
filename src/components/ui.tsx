@@ -112,7 +112,20 @@ export function PlayingCard({ card, small = false }: { card: Card; small?: boole
             ? '2nd'
             : card.kind === 'prediction'
               ? '×3'
-              : '+3';
+              : 'F3';
+  const name =
+    card.kind === 'number'
+      ? `Number ${card.value}`
+      : card.kind === 'bonus'
+        ? `+${card.value} points`
+        : card.kind === 'double'
+          ? 'Double numbered cards'
+          : card.kind === 'chance'
+            ? 'Second Chance'
+            : card.kind === 'prediction'
+              ? 'Prediction'
+              : 'Flip Three';
+  const description = `${name}${card.frozen ? ' — frozen, scores nothing but still counts for duplicates' : card.disabled ? ' — disabled' : ''}`;
   const color =
     card.kind === 'number'
       ? ['butter', 'lavender', 'sage', 'peach'][card.value % 4]
@@ -132,7 +145,9 @@ export function PlayingCard({ card, small = false }: { card: Card; small?: boole
   return (
     <div
       className={`playing-card ${color} ${small ? 'compact' : ''} ${card.frozen || card.disabled ? 'frozen' : ''}`}
-      title={`${card.kind === 'number' ? card.value : card.kind}${card.frozen ? ' — frozen, still counts for duplicates' : card.disabled ? ' — disabled' : ''}`}
+      role="img"
+      aria-label={description}
+      title={description}
     >
       <span className="card-corner">{label}</span>
       <div className="card-middle">
@@ -144,7 +159,9 @@ export function PlayingCard({ card, small = false }: { card: Card; small?: boole
         ) : (
           <>
             <Icon size={small ? 22 : 32} />
-            <strong>{label}</strong>
+            <strong className={card.kind === 'flip3' ? 'flip3-label' : undefined}>
+              {card.kind === 'flip3' && !small ? 'FLIP 3' : label}
+            </strong>
           </>
         )}
       </div>
