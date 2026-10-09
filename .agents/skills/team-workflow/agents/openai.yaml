@@ -1,4 +1,0 @@
-interface:
-  display_name: "Team Workflow"
-  short_description: "Plan, spike, implement, and check agreed work"
-  default_prompt: "Use $team-workflow to carry out the requested stage of our project workflow."
