@@ -761,6 +761,133 @@ body {
   color: var(--muted);
   font-size: 12px;
 }
+.app .active-effect-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  margin: -5px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.app .active-effect-hint > svg {
+  flex: 0 0 auto;
+  color: var(--orange);
+  margin-top: 2px;
+}
+.app .active-effect-hint p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.app .active-effect-hint strong {
+  color: var(--orange);
+  margin-right: 4px;
+}
+.app .special-card-guide {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.app .special-card-guide > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.app .special-card-guide > summary::-webkit-details-marker {
+  display: none;
+}
+.app .special-card-guide > summary::marker {
+  content: '';
+}
+.app .special-card-guide > summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.app .special-card-guide > summary > span:first-child {
+  font-size: 13px;
+  font-weight: 700;
+}
+.app .special-card-guide > summary > span:first-child > svg {
+  color: var(--orange);
+}
+.app .special-card-guide > summary > span:last-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+.app .special-card-guide > summary > span:last-child > svg {
+  transition: transform 180ms ease;
+}
+.app .special-card-guide[open] > summary > span:last-child > svg {
+  transform: rotate(180deg);
+}
+.app .special-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 14px 20px;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+}
+.app .special-card-list > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.app .special-card-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 52px;
+  min-height: 38px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--raised);
+  color: var(--orange);
+  font-family: 'Space Grotesk Variable', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+.app .special-card-list p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.app .special-card-list strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.app .special-card-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 0 16px 16px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.app .special-card-footnote > svg {
+  flex: 0 0 auto;
+  color: var(--orange);
+}
+.app .playing-card .card-middle > .flip3-label {
+  font-size: 17px;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+.app .playing-card.compact .card-middle > .flip3-label {
+  font-size: 13px;
+}
 .app .opponents {
   grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   gap: 10px;
@@ -2244,6 +2371,14 @@ body {
   .app .score-explainer {
     gap: 7px;
     order: 2;
+  }
+  .app .special-card-guide {
+    order: 3;
+    width: 100%;
+    margin: 14px 0 0;
+  }
+  .app .hand-cards .playing-card .card-middle > .flip3-label {
+    font-size: 12px;
   }
   .app .combo-message {
     order: 3;

@@ -26,6 +26,7 @@ import type { GameEvent, Player, Profile, PublicRoom } from '../../shared/types'
 import type { Command } from '../App';
 import { Avatar, PlayerStatus, Sunburst } from './ui';
 import { HandCards } from './HandCards';
+import { ActiveEffectHint, SpecialCardGuide } from './SpecialCardGuide';
 import { RouletteDialog } from './Roulette';
 import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
 import { rouletteResult, type RouletteBet } from '../roulette';
@@ -557,8 +558,10 @@ export function Table({
                   </span>
                 </div>
               </div>
+              <ActiveEffectHint prompt={room.prompt} />
             </>
           )}
+          <SpecialCardGuide />
           <div className="opponents">
             {room.players
               .filter((p) => p.id !== profile.id)
