@@ -1,0 +1,55 @@
+{
+  "name": "just-one-more",
+  "version": "1.0.0",
+  "description": "A real-time push-your-luck card game for friends.",
+  "scripts": {
+    "dev": "tsx watch server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx server/index.ts --production",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit && vitest run",
+    "test:integration": "vitest run tests/server.test.ts",
+    "format": "prettier --write src shared server tests docs README.md *.ts *.json index.html",
+    "format:check": "prettier --check src shared server tests docs README.md *.ts *.json index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lwoellhafsprinteins/just-one-more.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/lwoellhafsprinteins/just-one-more/issues"
+  },
+  "homepage": "https://github.com/lwoellhafsprinteins/just-one-more#readme",
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "express": "^5.2.1",
+    "lucide-react": "^1.54.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.1.2",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
