@@ -53,17 +53,20 @@ export default function App() {
   const room = game.room;
   const [initialAppearance] = useState(readCachedAppearance);
   const appearance = game.profile?.appearance ?? initialAppearance;
-  const appearanceName = APPEARANCES.find((a) => a.id === appearance)!.name;
+  const hackathonMode = Boolean(room?.reversed);
+  const appearanceName = hackathonMode
+    ? 'AI Hackathon'
+    : APPEARANCES.find((a) => a.id === appearance)!.name;
   const audio = useGameAudio(appearance);
   const sound = audio.settings.effects;
   useEffect(() => {
-    document.documentElement.dataset.appearance = appearance;
+    document.documentElement.dataset.appearance = hackathonMode ? 'hackathon' : appearance;
     try {
       localStorage.setItem('jom-appearance', appearance);
     } catch {
       /* The server still saves the choice. */
     }
-  }, [appearance]);
+  }, [appearance, hackathonMode]);
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [room?.code, room?.round, room?.phase, tab]);
@@ -161,7 +164,9 @@ export default function App() {
       `${r.name} ${r.code} ${r.hostName}`.toLowerCase().includes(search.toLowerCase()),
   );
   return (
-    <div className={`app appearance-${appearance} theme-${game.profile?.theme ?? 'classic'}`}>
+    <div
+      className={`app appearance-${hackathonMode ? 'hackathon' : appearance} theme-${hackathonMode ? 'hackathon' : (game.profile?.theme ?? 'classic')}`}
+    >
       <aside className="rail">
         <a
           href="/"
@@ -598,6 +603,7 @@ export default function App() {
       {modal === 'appearance' && game.profile && (
         <AppearanceDialog
           value={appearance}
+          hackathonMode={hackathonMode}
           busy={busy}
           error={appearanceError}
           onClose={() => {
@@ -647,6 +653,7 @@ export default function App() {
         <ProfileDialog
           profile={game.profile}
           inRoom={!!room}
+          hackathonMode={hackathonMode}
           onClose={() => setModal(null)}
           notify={notify}
           reload={game.reload}
@@ -935,6 +942,7 @@ function SettingsDialog({
 function ProfileDialog({
   profile,
   inRoom,
+  hackathonMode,
   onClose,
   notify,
   reload,
@@ -944,6 +952,7 @@ function ProfileDialog({
 }: {
   profile: Profile;
   inRoom: boolean;
+  hackathonMode: boolean;
   onClose: () => void;
   notify: (s: string) => void;
   reload: () => void;
@@ -1111,6 +1120,12 @@ function ProfileDialog({
                 ))}
               </div>
             </div>
+            {hackathonMode && (
+              <p className="appearance-note">
+                AI Hackathon sets the table’s look for this round. Your saved style returns next
+                round.
+              </p>
+            )}
             {error && (
               <p className="form-error" role="alert">
                 {error}
