@@ -45,10 +45,10 @@ function seedRandom(seed: number) {
 
 describe('documented deck and scoring contract', () => {
   it.each([
-    [12, 94],
-    [13, 107],
-    [14, 121],
-    [15, 136],
+    [12, 95],
+    [13, 108],
+    [14, 122],
+    [15, 137],
   ])('builds the 0–%i deck with %i cards', (max, total) => {
     const deck = buildDeck(max);
     expect(deck).toHaveLength(total);
@@ -57,6 +57,7 @@ describe('documented deck and scoring contract', () => {
       expect(deck.filter((c) => c.kind === 'number' && c.value === v)).toHaveLength(Math.max(v, 1));
     for (const kind of ['prediction', 'flip3', 'chance'])
       expect(deck.filter((c) => c.kind === kind)).toHaveLength(3);
+    expect(deck.filter((c) => c.kind === 'hackathon')).toHaveLength(1);
   });
   it.each([
     [6, 21, 0, 21],
@@ -374,6 +375,92 @@ describe('end conditions and round settlement', () => {
     expect(r.used).toHaveLength(18);
     expect(r.deck[0].value).toBe(10);
     expect(r.phase).toBe('round-end');
+  });
+});
+describe('AI Hackathon round reversal', () => {
+  it('reverses turn order and makes repeats safe while a new value busts', () => {
+    let r = fixture([4], [card(0, 'hackathon'), card(4), card(5)]);
+    r = applyAction(r, 'a', { type: 'draw' });
+    expect(r.reversed).toBe(true);
+    expect(r.turnId).toBe('d');
+    expect(r.events.some((event) => event.moment === 'hackathon')).toBe(true);
+    for (const id of ['d', 'c', 'b']) r = applyAction(r, id, { type: 'bank', roulette: false });
+    r = applyAction(r, 'a', { type: 'draw' });
+    expect(r.players[0].status).toBe('active');
+    expect(scoreHand(r.players[0], r).numberSum).toBe(16);
+    r = applyAction(r, 'a', { type: 'draw' });
+    expect(r.players[0].status).toBe('busted');
+    expect(r.phase).toBe('round-end');
+  });
+
+  it('turns point bonuses into penalties and ×2 into ÷2 without negative scores', () => {
+    const r = fixture([2, 2, 2]);
+    r.reversed = true;
+    r.players[0].hand.push(card(2, 'bonus'), card(2, 'double'));
+    expect(scoreHand(r.players[0], r)).toMatchObject({
+      numberSum: 30,
+      multiplier: 0.5,
+      flatBonus: -2,
+      total: 13,
+    });
+    r.players[0].hand = [card(12), card(10, 'bonus')];
+    expect(scoreHand(r.players[0], r).total).toBe(0);
+  });
+
+  it('makes a wrong prediction triple and a correct prediction freeze', () => {
+    let wrong = fixture([4], [card(4)]);
+    wrong.reversed = true;
+    wrong.prompt = { kind: 'guess', actorId: 'a' };
+    wrong = applyAction(wrong, 'a', { type: 'guess', value: 7 });
+    expect(wrong.players[0].predictionMultiplier).toBe(3);
+    expect(scoreHand(wrong.players[0], wrong).total).toBe(48);
+    expect(wrong.events.some((event) => event.moment === 'prediction-reverse-hit')).toBe(true);
+
+    let correct = fixture([4], [card(4)]);
+    correct.reversed = true;
+    correct.prompt = { kind: 'guess', actorId: 'a' };
+    correct = applyAction(correct, 'a', { type: 'guess', value: 4 });
+    expect(correct.players[0].hand.filter((c) => c.kind === 'number').every((c) => c.frozen)).toBe(
+      true,
+    );
+    expect(scoreHand(correct.players[0], correct).total).toBe(0);
+  });
+
+  it('turns Flip Three into a discard of the target’s three newest held cards', () => {
+    let r = fixture();
+    r.reversed = true;
+    r.players[1].hand = hand([1, 2, 3, 4]);
+    r.prompt = { kind: 'target', actorId: 'a', effect: 'flip3' };
+    r = applyAction(r, 'a', { type: 'target', targetId: 'b' });
+    expect(r.players[1].hand.map((c) => c.value)).toEqual([1]);
+    expect(r.forced).toBeNull();
+  });
+
+  it('lets Second Chance discard a new value and recalculates banked hands', () => {
+    let r = fixture([4], [card(0, 'hackathon'), card(5)]);
+    r.players[0].hand.push(card(0, 'chance'));
+    r.players[1].hand = hand([2]);
+    r.players[1].status = 'banked';
+    r.players[1].roundScore = 2;
+    r = applyAction(r, 'a', { type: 'draw' });
+    expect(r.players[1].roundScore).toBe(10);
+    r = applyAction(r, 'd', { type: 'bank', roulette: false });
+    r = applyAction(r, 'c', { type: 'bank', roulette: false });
+    r = applyAction(r, 'a', { type: 'draw' });
+    expect(r.players[0].status).toBe('active');
+    expect(r.players[0].hand.some((c) => c.kind === 'chance' || c.value === 5)).toBe(false);
+    r = applyAction(r, 'a', { type: 'bank', roulette: false });
+    expect(r.players[1].total).toBe(10);
+  });
+
+  it('returns to standard rules in the next round', () => {
+    const r = fixture();
+    r.reversed = true;
+    r.phase = 'round-end';
+    r.deck = [card(4), card(5), card(6), card(7)];
+    const next = startRound(r);
+    expect(next.reversed).toBe(false);
+    expect(next.phase).toBe('playing');
   });
 });
 describe('complete game simulation', () => {

@@ -1,4 +1,13 @@
-import { Eye, Layers3, ShieldCheck, Dices, Snowflake, Trophy, ArrowUpRight } from 'lucide-react';
+import {
+  BrainCircuit,
+  Eye,
+  Layers3,
+  ShieldCheck,
+  Dices,
+  Snowflake,
+  Trophy,
+  ArrowUpRight,
+} from 'lucide-react';
 import { Modal, PlayingCard } from './ui';
 
 export function Rules({ onClose }: { onClose: () => void }) {
@@ -98,6 +107,19 @@ export function Rules({ onClose }: { onClose: () => void }) {
             cards add their value; ×2 and earned ×3 multiply only the numbered-card sum.
           </p>
         </article>
+        <article>
+          <BrainCircuit />
+          <h4>AI Hackathon</h4>
+          <p>
+            One card reverses the current round for everyone. Turns run backward. Your first number
+            is safe; after that, a new value busts and repeats are safe. Second Chance discards the
+            next new value. Number points become the maximum minus the card value. Point cards,
+            combinations, and hand bonuses subtract; ×2 halves the number sum. Prediction now
+            rewards a wrong guess and freezes on a correct one. Flip Three discards the target’s
+            three most recent held cards. Scores cannot fall below zero. Existing banked hands
+            recalculate when the card appears. The next round starts normally.
+          </p>
+        </article>
       </div>
       <div className="formula">
         <span className="eyebrow">HOW YOUR SCORE ADDS UP</span>
@@ -107,9 +129,9 @@ export function Rules({ onClose }: { onClose: () => void }) {
         <summary>The deck & the small print</summary>
         <p>
           The deck has one 0 and v copies of each value v up to your chosen maximum (12–15). Add
-          three each of Prediction, Flip Three, and Second Chance, plus +2, +4, +6, +8, +10, and ×2.
-          Deal one opening card to each seat, resolving effects as they appear. Play follows join
-          order; the starting seat rotates each round.
+          three each of Prediction, Flip Three, and Second Chance, plus +2, +4, +6, +8, +10, ×2, and
+          one AI Hackathon card. Deal one opening card to each seat, resolving effects as they
+          appear. Play follows join order; the starting seat rotates each round.
         </p>
         <p>
           Unused cards stay in the deck between rounds. If it empties, shuffle only previous-round

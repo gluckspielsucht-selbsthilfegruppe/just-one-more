@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bot,
+  BrainCircuit,
   Check,
   CheckCheck,
   Copy,
@@ -31,6 +32,7 @@ import { RouletteDialog } from './Roulette';
 import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
 import { rouletteResult, type RouletteBet } from '../roulette';
 import type { SoundCue } from '../audio';
+import { useReducedMotion } from '../motion';
 
 async function copyText(text: string) {
   if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
@@ -283,7 +285,7 @@ export function Table({
   playSound: (cue: SoundCue) => void;
 }) {
   const me = room.players.find((p) => p.id === profile.id)!;
-  const score = scoreHand(me);
+  const score = scoreHand(me, room);
   const actorId = room.prompt?.actorId ?? room.turnId;
   const actor = room.players.find((p) => p.id === actorId);
   const mine = actorId === profile.id && room.phase === 'playing';
@@ -300,6 +302,7 @@ export function Table({
   });
   const [momentQueue, setMomentQueue] = useState<GameEvent[]>([]);
   const [seatMoments, setSeatMoments] = useState<Record<string, GameEvent>>({});
+  const reducedMotion = useReducedMotion();
   const seatTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const moment = momentQueue[0];
   const roundOver = room.phase === 'round-end' || room.phase === 'finished';
@@ -317,12 +320,18 @@ export function Table({
   useEffect(() => {
     const previous = seenMoments.current;
     seenMoments.current = { gameId: room.gameId, round: room.round, sequence: room.eventSequence };
-    if (previous.gameId !== room.gameId || previous.round !== room.round) {
+    if (previous.gameId !== room.gameId) {
       setMomentQueue([]);
       setSeatMoments({});
       seatTimers.current.forEach(clearTimeout);
       seatTimers.current.clear();
       return;
+    }
+    if (previous.round !== room.round) {
+      setMomentQueue([]);
+      setSeatMoments({});
+      seatTimers.current.forEach(clearTimeout);
+      seatTimers.current.clear();
     }
     const fresh = room.events.filter((event) => event.id > previous.sequence && event.moment);
     for (const event of fresh) {
@@ -348,9 +357,12 @@ export function Table({
   }, [room.gameId, room.round, room.eventSequence]);
   useEffect(() => {
     if (!moment) return;
-    const timer = setTimeout(() => setMomentQueue((queue) => queue.slice(1)), 2300);
+    const timer = setTimeout(
+      () => setMomentQueue((queue) => queue.slice(1)),
+      reducedMotion ? 900 : moment.moment === 'hackathon' ? 3200 : 2300,
+    );
     return () => clearTimeout(timer);
-  }, [moment]);
+  }, [moment, reducedMotion]);
   const momentPlayer = moment?.playerId
     ? room.players.find((player) => player.id === moment.playerId)
     : null;
@@ -359,9 +371,11 @@ export function Table({
     return seat
       ? seat.moment === 'bust' || seat.moment === 'roulette-loss'
         ? 'moment-bust'
-        : seat.moment === 'bank'
-          ? 'moment-bank'
-          : 'moment-hit'
+        : seat.moment === 'hackathon'
+          ? 'moment-hackathon'
+          : seat.moment === 'bank'
+            ? 'moment-bank'
+            : 'moment-hit'
       : '';
   };
   const action = (value: Record<string, unknown>) => send('action', { action: value });
@@ -393,6 +407,18 @@ export function Table({
           <span>Numbers 0–{room.settings.maxNumber}</span>
         </div>
       </div>
+      {room.reversed && (
+        <div className="reverse-rules-strip" role="status">
+          <BrainCircuit size={22} />
+          <div>
+            <strong>AI HACKATHON MODE</strong>
+            <span>
+              Reverse turns · fresh numbers bust · low cards score high · bonuses turn against you
+            </span>
+          </div>
+          <span aria-hidden="true">↶</span>
+        </div>
+      )}
       <div className="game-layout">
         <aside className="scoreboard">
           <div className="sidebar-title">
@@ -546,10 +572,12 @@ export function Table({
                       ? room.prompt?.kind === 'guess'
                         ? 'Guess the exact value of your next numbered card.'
                         : room.prompt?.kind === 'target'
-                          ? `Choose any active player for ${room.prompt.effect === 'prediction' ? 'Prediction' : 'Flip Three'}.`
+                          ? `Choose any active player for ${room.prompt.effect === 'prediction' ? 'Prediction' : room.reversed ? 'Reverse Flip Three' : 'Flip Three'}.`
                           : room.ending
                             ? 'The round is ending. Make your final choice.'
-                            : 'Draw another card, or keep what you’ve earned.'
+                            : room.reversed
+                              ? 'Draw for a repeat, or bank before a new number busts you.'
+                              : 'Draw another card, or keep what you’ve earned.'
                       : actor?.bot
                         ? 'Your practice crew is thinking it over.'
                         : !actor?.connected
@@ -558,10 +586,10 @@ export function Table({
                   </span>
                 </div>
               </div>
-              <ActiveEffectHint prompt={room.prompt} />
+              <ActiveEffectHint prompt={room.prompt} reversed={room.reversed} />
             </>
           )}
-          <SpecialCardGuide />
+          <SpecialCardGuide reversed={room.reversed} />
           <div className="opponents">
             {room.players
               .filter((p) => p.id !== profile.id)
@@ -569,6 +597,7 @@ export function Table({
                 <Opponent
                   key={p.id}
                   player={p}
+                  room={room}
                   current={p.id === actorId && !roundOver}
                   momentClass={momentClass(p.id)}
                 />
@@ -610,8 +639,8 @@ export function Table({
               </div>
               <span className="bonus-hint">
                 {score.count < 7
-                  ? `${7 - score.count} more to your +15 bonus`
-                  : `+${score.countBonus} hand bonus`}
+                  ? `${7 - score.count} more to your ${room.reversed ? '−15 penalty' : '+15 bonus'}`
+                  : `${score.countBonus > 0 ? '+' : ''}${score.countBonus} hand ${room.reversed ? 'penalty' : 'bonus'}`}
               </span>
             </div>
             {mine && (
@@ -702,22 +731,24 @@ export function Table({
             <span>
               <strong>{score.multiplier}</strong> multiplier
             </span>
-            <b>+</b>
+            <b>{room.reversed ? '−' : '+'}</b>
             <span>
-              <strong>{score.flatBonus}</strong> point cards
+              <strong>{Math.abs(score.flatBonus)}</strong> point cards
             </span>
-            <b>+</b>
+            <b>{room.reversed ? '−' : '+'}</b>
             <span>
-              <strong>{score.comboBonus}</strong> combos
+              <strong>{Math.abs(score.comboBonus)}</strong> combos
             </span>
-            <b>+</b>
+            <b>{room.reversed ? '−' : '+'}</b>
             <span>
-              <strong>{score.countBonus}</strong> hand bonus
+              <strong>{Math.abs(score.countBonus)}</strong> hand{' '}
+              {room.reversed ? 'penalty' : 'bonus'}
             </span>
           </div>
           {score.combos.length > 0 && (
             <div className="combo-message">
-              <Sparkles size={14} /> {score.combos.join(' and ')} — a very good combination.
+              <Sparkles size={14} /> {score.combos.join(' and ')} —{' '}
+              {room.reversed ? 'a costly combination.' : 'a very good combination.'}
             </div>
           )}
         </section>
@@ -842,14 +873,16 @@ export function Table({
 }
 function Opponent({
   player,
+  room,
   current,
   momentClass,
 }: {
   player: Player;
+  room: PublicRoom;
   current: boolean;
   momentClass: string;
 }) {
-  const score = scoreHand(player);
+  const score = scoreHand(player, room);
   return (
     <article
       className={`opponent ${current ? 'current' : ''} ${player.status === 'busted' ? 'busted' : ''} ${momentClass}`}

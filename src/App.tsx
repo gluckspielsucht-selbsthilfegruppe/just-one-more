@@ -102,6 +102,10 @@ export default function App() {
     const fresh = room.events.filter((e) => e.id > Number(previousSequence));
     // The wheel reveals its own outcome after the spin, including a game-ending bank.
     if (fresh.some((e) => e.text.includes('took roulette'))) return;
+    if (fresh.some((e) => e.moment === 'hackathon')) {
+      audio.play('hackathon');
+      return;
+    }
     const event =
       fresh.find((e) => e.type === 'win') ?? fresh.find((e) => e.type === 'bust') ?? fresh.at(-1);
     if (event && event.type !== 'info') audio.play(event.type);
