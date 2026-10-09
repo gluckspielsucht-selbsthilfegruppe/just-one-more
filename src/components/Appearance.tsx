@@ -50,12 +50,14 @@ export function AppearancePicker({
 
 export function AppearanceDialog({
   value,
+  hackathonMode,
   onChange,
   onClose,
   busy,
   error,
 }: {
   value: Profile['appearance'];
+  hackathonMode: boolean;
   onChange: (value: Profile['appearance']) => void;
   onClose: () => void;
   busy: boolean;
@@ -64,7 +66,11 @@ export function AppearanceDialog({
   return (
     <Modal
       title="Find your table’s vibe."
-      subtitle="Three ways to play. Pick a theme to apply and save it instantly."
+      subtitle={
+        hackathonMode
+          ? 'Choose the theme that returns when this round ends.'
+          : 'Three ways to play. Pick a theme to apply and save it instantly.'
+      }
       onClose={onClose}
       wide
     >
@@ -75,7 +81,10 @@ export function AppearanceDialog({
         </p>
       )}
       <p className="appearance-note">
-        <Palette size={16} /> Your choice follows your profile. Other players keep their own theme.
+        <Palette size={16} />
+        {hackathonMode
+          ? 'AI Hackathon sets the table’s look for this round. Your choice returns next round.'
+          : 'Your choice follows your profile. Other players keep their own theme.'}
       </p>
       <button className="button primary full" onClick={onClose}>
         Back to the game <Check size={17} />

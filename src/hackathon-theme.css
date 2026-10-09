@@ -1,0 +1,147 @@
+/* The round's shared reverse state temporarily takes over every personal visual theme. */
+:root[data-appearance='hackathon'] {
+  color-scheme: dark;
+  --paper: #090c1f;
+  --surface: #151a38;
+  --raised: #242951;
+  --ink: #f6f2ff;
+  --muted: #b9b5d5;
+  --line: #62558c;
+  --orange: #a9fff1;
+  --on-accent: #11192d;
+  --accent-soft: #30254f;
+  --hot: #e2b4ff;
+  --danger: #ff9cb9;
+  --danger-soft: #482640;
+  --success: #a9fff1;
+  --radius: 14px;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --display-weight: 800;
+  --shadow: 0 18px 42px #02030c80;
+}
+
+.app.appearance-hackathon {
+  background:
+    radial-gradient(ellipse at 50% 4%, #a56cff30, transparent 46%),
+    radial-gradient(ellipse at 95% 58%, #54e6db17, transparent 42%),
+    linear-gradient(#9582d00a 1px, transparent 1px),
+    linear-gradient(90deg, #9582d00a 1px, transparent 1px), var(--paper);
+  background-size:
+    auto,
+    auto,
+    48px 48px,
+    48px 48px,
+    auto;
+}
+
+.appearance-hackathon .topbar {
+  background: linear-gradient(90deg, #101329f5, #241a3bf2 55%, #102c39f5);
+  border-bottom: 1px solid #8d6cc07a;
+  box-shadow: 0 8px 36px #06041466;
+}
+
+.appearance-hackathon .wordmark,
+.appearance-hackathon .game-heading h1,
+.appearance-hackathon .round-result h2 {
+  color: #f6e8ff;
+  text-shadow: 0 0 22px #bc80fa80;
+}
+
+.appearance-hackathon .appearance-trigger {
+  border-color: #a9fff1a6;
+  color: #a9fff1;
+  background: #a9fff112;
+  box-shadow: 0 0 18px #a9fff120;
+}
+
+.app.appearance-hackathon .table-center {
+  background:
+    radial-gradient(ellipse at 50% 40%, #693f9d44, transparent 62%),
+    radial-gradient(ellipse at 85% 88%, #54e6db24, transparent 48%), #141730;
+  border-color: #9a78c9;
+  box-shadow:
+    0 0 0 1px #c5a0f02b,
+    0 0 60px #794ab736,
+    inset 0 0 46px #7a51ab22;
+  animation: hackathon-stage-in 900ms ease-out both;
+}
+
+.appearance-hackathon :is(.scoreboard, .activity-panel) {
+  background: linear-gradient(160deg, #1c1c3e, #121b34);
+  border-color: #705a9c;
+  box-shadow:
+    0 12px 32px #05071370,
+    inset 0 1px #cca7ff20;
+}
+
+.appearance-hackathon :is(.opponent, .hand-heading, .special-card-guide) {
+  background: #101730cc;
+  border-color: #665584;
+}
+
+.appearance-hackathon .opponent.current,
+.appearance-hackathon .turn-banner.your-turn {
+  background: linear-gradient(115deg, #382457, #1a3b49);
+  border-color: #a9fff1;
+  box-shadow: 0 0 22px #a9fff11c;
+}
+
+.appearance-hackathon .hand-score > strong,
+.appearance-hackathon .opponent-heading > b {
+  color: #d7b2ff;
+  text-shadow: 0 0 20px #ab6def80;
+}
+
+.app.appearance-hackathon .hand-cards .playing-card:not(.hackathon, .frozen),
+.app.appearance-hackathon .opponent-cards .playing-card:not(.hackathon, .frozen) {
+  background: linear-gradient(150deg, #f7eaff, #d4c9fa 58%, #a9fff1);
+  color: #211b3f;
+  border-color: #dbc1ff;
+  box-shadow:
+    0 4px 0 #251637,
+    0 0 19px #a883d658;
+}
+
+.app.appearance-hackathon
+  :is(.hand-cards, .opponent-cards)
+  .playing-card:not(.hackathon, .frozen):nth-child(even) {
+  background: linear-gradient(150deg, #dbfff9, #d9c5f7);
+  border-color: #a9fff1;
+}
+
+.appearance-hackathon .playing-card:not(.hackathon, .frozen) .card-middle > svg {
+  color: #69449a;
+  opacity: 0.22;
+}
+
+.appearance-hackathon .button.primary {
+  background: linear-gradient(120deg, #e4b6ff, #a9fff1);
+  color: #171629;
+  border-color: #d6b4ff;
+  box-shadow:
+    0 4px 0 #423863,
+    0 0 24px #a9fff13b;
+}
+
+.appearance-hackathon .button.primary:hover:not(:disabled) {
+  background: linear-gradient(120deg, #f1d3ff, #d3fff7);
+}
+
+.appearance-hackathon .round-result {
+  background: linear-gradient(135deg, #281c42, #162e43);
+  border-color: #a77dcb;
+  box-shadow: 0 0 40px #8d51bb40;
+}
+
+@keyframes hackathon-stage-in {
+  from {
+    box-shadow: 0 0 0 #0000;
+    filter: brightness(1.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app.appearance-hackathon .table-center {
+    animation: none;
+  }
+}
