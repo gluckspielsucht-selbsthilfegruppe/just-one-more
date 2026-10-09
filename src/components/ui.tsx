@@ -100,7 +100,15 @@ export function Sunburst({ className = '' }: { className?: string }) {
     </svg>
   );
 }
-export function PlayingCard({ card, small = false }: { card: Card; small?: boolean }) {
+export function PlayingCard({
+  card,
+  small = false,
+  fresh = false,
+}: {
+  card: Card;
+  small?: boolean;
+  fresh?: boolean;
+}) {
   const label =
     card.kind === 'number'
       ? String(card.value)
@@ -144,7 +152,7 @@ export function PlayingCard({ card, small = false }: { card: Card; small?: boole
           : Sparkles;
   return (
     <div
-      className={`playing-card ${color} ${small ? 'compact' : ''} ${card.frozen || card.disabled ? 'frozen' : ''}`}
+      className={`playing-card ${color} ${small ? 'compact' : ''} ${card.frozen || card.disabled ? 'frozen' : ''} ${fresh ? 'fresh' : ''}`}
       role="img"
       aria-label={description}
       title={description}

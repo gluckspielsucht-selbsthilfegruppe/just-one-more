@@ -38,6 +38,16 @@
 .app .opponent-cards .playing-card {
   animation: card-arrive 400ms ease-out both;
 }
+.app .card-hand .playing-card.fresh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, #fff9 48%, transparent 66%);
+  animation: card-shine 950ms 100ms ease-out both;
+}
 .app .turn-banner {
   animation: panel-arrive 380ms ease-out both;
 }
@@ -62,6 +72,112 @@
 }
 .animated-number {
   font-variant-numeric: tabular-nums;
+}
+.app .hand-score,
+.app .count-milestone {
+  position: relative;
+}
+.app .hand-score > .score-pop {
+  position: absolute;
+  z-index: 4;
+  right: -12px;
+  top: -22px;
+  color: var(--orange);
+  font-family: 'Space Grotesk Variable', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow:
+    0 2px 0 var(--paper),
+    0 0 16px var(--paper);
+  pointer-events: none;
+  animation: score-float 1350ms cubic-bezier(0.14, 0.8, 0.25, 1) both;
+}
+.app .hand-score > .score-pop.drop {
+  color: var(--hot);
+}
+.app .hand-score > .bank-lock {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  top: -18px;
+  width: 100px;
+  height: 65px;
+  pointer-events: none;
+}
+.bank-lock i {
+  position: absolute;
+  top: 0;
+  left: 49px;
+  width: 21px;
+  height: 21px;
+  border: 3px solid var(--orange);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow:
+    inset 0 0 0 2px var(--paper),
+    inset 0 0 0 5px var(--orange);
+  animation: bank-chip 1050ms ease-in-out both;
+}
+.bank-lock i:nth-child(1) {
+  --chip-start: -32px;
+  --chip-end: -12px;
+}
+.bank-lock i:nth-child(2) {
+  --chip-start: 14px;
+  --chip-end: 0px;
+  animation-delay: 90ms;
+}
+.bank-lock i:nth-child(3) {
+  --chip-start: 46px;
+  --chip-end: 12px;
+  animation-delay: 180ms;
+}
+.bank-lock b {
+  position: absolute;
+  top: 35px;
+  right: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--orange);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--orange);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  animation: bank-stamp 1350ms both;
+}
+.app .count-dots {
+  position: relative;
+}
+.app .count-dots.milestone-unlocked::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 2px solid var(--orange);
+  border-radius: 9px;
+  pointer-events: none;
+  animation: milestone-ring 1200ms both;
+}
+.app .count-dots.milestone-unlocked .filled.bonus-dot {
+  animation: milestone-dot 700ms cubic-bezier(0.17, 1.7, 0.4, 1) both;
+}
+.app .count-milestone > .milestone-flash {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  bottom: calc(100% + 2px);
+  color: var(--orange);
+  font-family: 'Space Grotesk Variable', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 var(--paper);
+  pointer-events: none;
+  animation: milestone-label 1450ms both;
 }
 .app .round-result {
   position: relative;
@@ -645,6 +761,108 @@
     transform: translate3d(0, 0, 0) rotateY(0) rotateZ(0) scale(1);
   }
 }
+@keyframes card-shine {
+  from {
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+}
+@keyframes score-float {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.65);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.18);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.9);
+  }
+}
+@keyframes bank-chip {
+  0% {
+    opacity: 0;
+    transform: translate(var(--chip-start), -24px) scale(0.5) rotate(-90deg);
+  }
+  35% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+    transform: translate(var(--chip-end), 15px) scale(1) rotate(290deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--chip-end), 15px) scale(0.8) rotate(360deg);
+  }
+}
+@keyframes bank-stamp {
+  0%,
+  28% {
+    opacity: 0;
+    transform: translateY(10px) scale(1.4) rotate(-7deg);
+  }
+  42%,
+  78% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(-7deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-7px) scale(1) rotate(-7deg);
+  }
+}
+@keyframes milestone-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+@keyframes milestone-dot {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.8);
+    box-shadow: 0 0 12px var(--orange);
+  }
+}
+@keyframes milestone-label {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.65) rotate(-6deg);
+  }
+  35%,
+  70% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.05) rotate(-6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-23px) scale(0.95) rotate(-6deg);
+  }
+}
 @keyframes panel-arrive {
   from {
     opacity: 0;
@@ -1153,6 +1371,13 @@
     scroll-behavior: auto !important;
   }
   .celebration {
+    display: none;
+  }
+  .app .card-hand .playing-card.fresh::before,
+  .app .hand-score > .score-pop,
+  .app .hand-score > .bank-lock,
+  .app .count-dots.milestone-unlocked::after,
+  .app .count-milestone > .milestone-flash {
     display: none;
   }
 }
