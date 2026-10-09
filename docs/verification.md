@@ -10,6 +10,15 @@ Date: 2026-10-09. Branch: `codex/complete-application`.
 - Correct and incorrect predictions, disabled modifiers, duplicate frozen numbers, Second Chance consumption/transfer, forced-effect ordering, incomplete predictions, the ten-card interrupt, discard recycling, round rotation, tied winners, and both game-end modes.
 - Seven integration tests using actual HTTP connections and four separate authenticated WebSocket clients: identical state, host permissions, readiness, private discovery, capacity, duplicate/stale commands, disconnect recovery, automatic disconnected turns (including while chat is active), guest/account flows, session security, and durable restart recovery.
 
+## Card rows and statistics fixes (2026-10-09)
+
+- `npm run check` passed: strict TypeScript and all 59 tests. The server suite now has 12 integration tests, including three new statistics regressions.
+- The new checks cover updates after a settled round, no updates during an unfinished round, wins and losses, duplicate requests, reconnects, rematches, busted practice rounds settled by bots, leaving a table, restart persistence, and migration of older unfinished and completed games without double counting.
+- After removing randomness from the practice-game completion fixture, `npm run test:integration` passed all 12 tests. `npm run build`, `npm run format:check`, and `git diff --check` also passed.
+- A React server-rendering smoke check verified special cards before number cards for both full and compact hands, including frozen numbers, disabled modifiers, prediction multipliers, and active/banked/busted states.
+- Visual browser verification of these changes was unavailable: no connected browser was exposed, and native Chrome access returned “Computer Use permissions are not granted.” The earlier rehearsal below predates these fixes. Mobile scrolling, the gray-shadow transition, and reduced-motion appearance still need a visual rehearsal.
+- After fetching `main` with the independent music-style feature, the combined work passed `npm run check` (71 tests), `npm run build`, and `npm run format:check` on 2026-10-09. Git reapplied the card and stats work without unresolved conflicts.
+
 ## Browser rehearsal
 
 The application was run locally and opened in four isolated browser origins: `localhost`, `alice.localhost`, `bob.localhost`, and `cleo.localhost`, all using the same running server and separate cookies.

@@ -24,7 +24,8 @@ import {
 import { scoreHand } from '../../shared/scoring';
 import type { Player, Profile, PublicRoom } from '../../shared/types';
 import type { Command } from '../App';
-import { Avatar, PlayingCard, PlayerStatus, Sunburst } from './ui';
+import { Avatar, PlayerStatus, Sunburst } from './ui';
+import { HandCards } from './HandCards';
 import { RouletteDialog } from './Roulette';
 import { AnimatedNumber, Celebration } from './Motion';
 import { rouletteResult, type RouletteBet } from '../roulette';
@@ -493,15 +494,15 @@ export function Table({
                   </span>
                 </div>
               </div>
-              <div className="opponents">
-                {room.players
-                  .filter((p) => p.id !== profile.id)
-                  .map((p) => (
-                    <Opponent key={p.id} player={p} current={p.id === actorId} />
-                  ))}
-              </div>
             </>
           )}
+          <div className="opponents">
+            {room.players
+              .filter((p) => p.id !== profile.id)
+              .map((p) => (
+                <Opponent key={p.id} player={p} current={p.id === actorId && !roundOver} />
+              ))}
+          </div>
           <div className={`your-hand hand-${me.status}`}>
             <div className="hand-heading">
               <div className="hand-player">
@@ -520,20 +521,7 @@ export function Table({
                 <span>{me.status === 'banked' ? 'banked' : 'round points'}</span>
               </div>
             </div>
-            <div className="hand-cards">
-              {me.hand.length ? (
-                me.hand.map((c) => <PlayingCard key={c.id} card={c} />)
-              ) : (
-                <div className="empty-hand">Your first card is on its way.</div>
-              )}
-              {me.predictionMultiplier > 1 && (
-                <div className="multiplier-token">
-                  <Eye size={22} />
-                  <strong>×{me.predictionMultiplier}</strong>
-                  <span>Prediction</span>
-                </div>
-              )}
-            </div>
+            <HandCards player={me} />
             <div className="hand-bottom">
               <div className="count-milestone">
                 <span>
@@ -797,15 +785,7 @@ function Opponent({ player, current }: { player: Player; current: boolean }) {
           <small>pts</small>
         </b>
       </div>
-      <div className="opponent-cards">
-        {player.hand.map((c) => (
-          <PlayingCard card={c} small key={c.id} />
-        ))}
-        {!player.hand.length && <span className="muted-text">Waiting for a card…</span>}
-      </div>
-      {player.predictionMultiplier > 1 && (
-        <span className="mini-multiplier">×{player.predictionMultiplier} prediction</span>
-      )}
+      <HandCards player={player} small />
     </article>
   );
 }

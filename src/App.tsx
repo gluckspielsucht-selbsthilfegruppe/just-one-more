@@ -1172,7 +1172,7 @@ function Stats({
     <section className="stats-page">
       <span className="eyebrow">EVERY ROUND TELLS A STORY</span>
       <h1>Your time at the table.</h1>
-      <p>A few numbers to remember the good nights by.</p>
+      <p>Round stats update after every round. Games and wins count when a game finishes.</p>
       <div className="stats-grid">
         {[
           ['Games played', stats?.games ?? 0],
@@ -1190,12 +1190,12 @@ function Stats({
       <div className="stats-note">
         <Sunburst />
         <h2>
-          {stats?.games ? 'There’s always room for one more.' : 'Every streak starts somewhere.'}
+          {stats?.rounds ? 'There’s always room for one more.' : 'Every streak starts somewhere.'}
         </h2>
         <p>
-          {stats?.games
+          {stats?.rounds
             ? `${stats.rounds} rounds played. Your next favorite hand is waiting.`
-            : 'Finish a game and your stats will show up here.'}
+            : 'Finish a round and your stats will show up here.'}
         </p>
         <button className="button primary" onClick={onPlay}>
           Back to the tables <ArrowRight size={17} />

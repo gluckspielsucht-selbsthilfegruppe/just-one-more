@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApplication } from '../server/app';
-import { DEFAULT_SETTINGS } from '../shared/engine';
+import { DEFAULT_SETTINGS, makePlayer } from '../shared/engine';
 import type { Profile, PublicRoom } from '../shared/types';
 
 type Snapshot = {
@@ -88,6 +88,21 @@ async function connect(name: string, cookie?: string): Promise<Client> {
   await until(() => !!c.state);
   return c;
 }
+// Deal controlled hands, then exercise settlement through the real WebSocket commands.
+async function dealStatsRound(host: Client, values: number[], totals?: number[]) {
+  const room = application.store.data.rooms[host.state.room!.code];
+  room.phase = 'playing';
+  room.round++;
+  room.turnId = room.players[0].id;
+  room.players = room.players.map((player, index) => ({
+    ...makePlayer(player.id, player.name, player.color, player.bot),
+    connected: player.connected,
+    total: totals?.[index] ?? player.total,
+    hand: [{ id: `stats-${room.round}-${index}`, kind: 'number', value: values[index] }],
+  }));
+  await host.request('chat', { message: 'Ready for the next round.' });
+  return room;
+}
 beforeEach(async () => {
   clients = [];
   application = createApplication({ botDelay: 5, disconnectDelay: 30 });
@@ -99,6 +114,161 @@ afterEach(async () => {
 });
 
 describe('four-player real-time server', () => {
+  it('updates round stats immediately and counts completed games once across replay, reconnect and rematch', async () => {
+    const a = await connect('Alice');
+    const b = await connect('Bob');
+    await a.request('create', { name: 'Stats table', settings: DEFAULT_SETTINGS });
+    await b.request('join', { code: a.state.room!.code });
+    await dealStatsRound(a, [12, 8]);
+    await a.request('action', { action: { type: 'bank', roulette: false } });
+    expect(a.state.profile.stats.rounds).toBe(0);
+    await until(() => b.state.room?.turnId === b.state.profile.id);
+    const replay = { id: randomUUID(), version: b.state.room!.version };
+    await b.request('action', { action: { type: 'bank', roulette: false } }, replay);
+    await until(() => a.state.profile.stats.rounds === 1);
+    expect(a.state.profile.stats).toEqual({
+      games: 0,
+      wins: 0,
+      rounds: 1,
+      bestRound: 12,
+      bestScore: 12,
+    });
+    expect(b.state.profile.stats).toEqual({
+      games: 0,
+      wins: 0,
+      rounds: 1,
+      bestRound: 8,
+      bestScore: 8,
+    });
+    await b.request('action', { action: { type: 'bank', roulette: false } }, replay);
+    await a.request('chat', { message: 'One round counted.' });
+    const again = await connect('Alice', a.cookie);
+    expect(again.state.profile.stats).toEqual(a.state.profile.stats);
+    expect(again.state.profile.stats.rounds).toBe(1);
+
+    await dealStatsRound(a, [12, 8], [190, 8]);
+    await a.request('action', { action: { type: 'bank', roulette: false } });
+    await until(() => b.state.room?.turnId === b.state.profile.id);
+    await b.request('action', { action: { type: 'bank', roulette: false } });
+    await until(() => a.state.room?.phase === 'finished');
+    expect(a.state.profile.stats).toEqual({
+      games: 1,
+      wins: 1,
+      rounds: 2,
+      bestRound: 12,
+      bestScore: 202,
+    });
+    expect(b.state.profile.stats).toEqual({
+      games: 1,
+      wins: 0,
+      rounds: 2,
+      bestRound: 8,
+      bestScore: 16,
+    });
+    const previousGame = a.state.room!.gameId;
+    await a.request('chat', { message: 'A finished game counts once.' });
+    await a.request('rematch');
+    expect(a.state.room!.gameId).not.toBe(previousGame);
+    await dealStatsRound(a, [1, 12], [0, 190]);
+    await a.request('action', { action: { type: 'bank', roulette: false } });
+    await until(() => b.state.room?.turnId === b.state.profile.id);
+    await b.request('action', { action: { type: 'bank', roulette: false } });
+    await until(() => a.state.profile.stats.games === 2);
+    expect(a.state.profile.stats).toEqual({
+      games: 2,
+      wins: 1,
+      rounds: 3,
+      bestRound: 12,
+      bestScore: 202,
+    });
+    expect(b.state.profile.stats).toEqual({
+      games: 2,
+      wins: 1,
+      rounds: 3,
+      bestRound: 12,
+      bestScore: 202,
+    });
+  });
+
+  it('counts a busted practice round when a bot settles it and retains stats after leaving', async () => {
+    const a = await connect('Alice');
+    await a.request('create', { name: 'Practice stats', settings: DEFAULT_SETTINGS });
+    await a.request('add-bot');
+    const room = await dealStatsRound(a, [12, 8], [0, 200]);
+    room.deck = [{ id: 'duplicate', kind: 'number', value: 12 }];
+    await a.request('action', { action: { type: 'draw' } });
+    await until(() => a.state.room?.phase === 'finished');
+    expect(a.state.room!.players[0].status).toBe('busted');
+    const stats = { games: 1, wins: 0, rounds: 1, bestRound: 0, bestScore: 0 };
+    expect(a.state.profile.stats).toEqual(stats);
+    await a.request('leave');
+    expect(a.state.room).toBeNull();
+    expect((await (await request('bootstrap', undefined, a.cookie)).json()).profile.stats).toEqual(
+      stats,
+    );
+  });
+
+  it('persists round checkpoints, backfills older unfinished games and preserves already counted games', async () => {
+    await application.close();
+    const directory = mkdtempSync(join(tmpdir(), 'jom-stats-'));
+    try {
+      const dataFile = join(directory, 'game.json');
+      application = createApplication({ dataFile });
+      await listen();
+      const a = await connect('Alice');
+      const b = await connect('Bob');
+      await a.request('create', { name: 'Saved stats', settings: DEFAULT_SETTINGS });
+      await b.request('join', { code: a.state.room!.code });
+      await dealStatsRound(a, [12, 8]);
+      await a.request('action', { action: { type: 'bank', roulette: false } });
+      await until(() => b.state.room?.turnId === b.state.profile.id);
+      await b.request('action', { action: { type: 'bank', roulette: false } });
+      await until(() => a.state.profile.stats.rounds === 1);
+      const stats = structuredClone(a.state.profile.stats);
+      await application.close();
+
+      application = createApplication({ dataFile });
+      await listen();
+      let restored = await connect('Alice', a.cookie);
+      expect(restored.state.profile.stats).toEqual(stats);
+      await restored.request('chat', { message: 'Still only one round.' });
+      expect(restored.state.profile.stats).toEqual(stats);
+      await application.close();
+
+      // Simulate a pre-fix save: unfinished games had no recorded stats or checkpoint.
+      let legacy = JSON.parse(readFileSync(dataFile, 'utf8'));
+      delete legacy.recordedRounds;
+      for (const user of Object.values(legacy.users) as Profile[])
+        user.stats = { games: 0, wins: 0, rounds: 0, bestRound: 0, bestScore: 0 };
+      writeFileSync(dataFile, JSON.stringify(legacy));
+      application = createApplication({ dataFile });
+      await listen();
+      restored = await connect('Alice', a.cookie);
+      expect(restored.state.profile.stats).toEqual(stats);
+      await application.close();
+
+      // Older finished games already had round stats, so migration must not add them again.
+      legacy = JSON.parse(readFileSync(dataFile, 'utf8'));
+      delete legacy.recordedRounds;
+      const room = legacy.rooms[restored.state.room!.code];
+      room.phase = 'finished';
+      room.winnerId = a.state.profile.id;
+      legacy.completed.push(room.gameId);
+      legacy.users[a.state.profile.id].stats.games = 1;
+      legacy.users[a.state.profile.id].stats.wins = 1;
+      writeFileSync(dataFile, JSON.stringify(legacy));
+      application = createApplication({ dataFile });
+      await listen();
+      restored = await connect('Alice', a.cookie);
+      expect(restored.state.profile.stats).toEqual({ ...stats, games: 1, wins: 1 });
+      await restored.request('chat', { message: 'Migration does not count twice.' });
+      expect(restored.state.profile.stats).toEqual({ ...stats, games: 1, wins: 1 });
+    } finally {
+      await application.close();
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it('shares identical state, validates turns, deduplicates commands, settles a round and reconnects to the same seat', async () => {
     const four: Client[] = [];
     for (const name of ['Alice', 'Bob', 'Cleo', 'Drew']) four.push(await connect(name));
