@@ -1,137 +1,109 @@
 # Spec → Slice → Check
 
-A lightweight AI development workflow for **Just One More**: three developers, Codex, and a playable hackathon prototype.
+The intended development workflow for **Just One More**: three developers using Codex to build a playable multiplayer prototype within a hackathon day.
 
-This is a proposed workflow reconstructed from the finished application and its repository artifacts. The role allocation, timeboxes, and prompts are a reusable plan, not a record of when or how the original implementation happened. The [presentation notes](workflow-presentation.md) explain the approach through evidence available in the project.
+**Define a small outcome, implement one playable slice, and check it against agreed behavior. Repeat.**
 
-## The idea
+Humans own scope, game rules, architecture decisions, and acceptance. Codex helps clarify requirements, propose solutions, implement bounded changes, and investigate failures. Focus effort on the two main risks: ambiguous rule interactions and inconsistent multiplayer state.
 
-**Give AI a small, explicit problem; implement one playable slice; check it against an agreed outcome. Repeat.**
+## Workflow diagram
 
-Humans own scope, game semantics, tradeoffs, and acceptance. Codex helps clarify ambiguity, propose a solution, implement changes, and investigate failures. A convincing explanation from the model is an input to review; observable behavior is the acceptance criterion.
-
-For this game, the biggest uncertainties are rule interactions and multiplayer consistency. Spend the most attention there. Keep process inside the existing rules, shared types, tests, and decision notes.
-
-```text
-Define the playable outcome → Prove the risky assumptions
-                                      ↓
-                      Spec → Slice → Check → Accept
-                        ↑               │
-                        └── revise ─────┘
-                                      ↓
-                         Rehearse and demonstrate
+```mermaid
+flowchart TD
+    A["Define the prototype scope"] --> B["Clarify rules and investigate key risks"]
+    B --> C["Agree shared state and action contracts"]
+    C --> D["Spec: outcome, boundaries, acceptance examples"]
+    D --> E["Slice: implement one playable increment"]
+    E --> F["Check: targeted tests and human review"]
+    F --> G{"Meets acceptance criteria?"}
+    G -- "No: revise the brief or implementation" --> D
+    G -- "Yes" --> H["Integrate the slice"]
+    H --> I{"Required work remains?"}
+    I -- "Yes" --> D
+    I -- "No" --> J["Validate the complete player journey"]
+    J --> K{"Ready for play?"}
+    K -- "No: define a repair slice" --> D
+    K -- "Yes" --> L["Playable prototype"]
 ```
 
-## A five-hour plan
+## Timebox the work
 
-The timeboxes below total five hours of elapsed team time. If six hours are available, keep the extra hour for integration problems and the presentation. The three developers work concurrently inside the implementation window.
+Use a five-hour working plan. If a sixth hour is available, reserve it for integration problems and unfinished validation. Developers work concurrently during implementation; the timeboxes represent elapsed team time.
 
-| Stage           | Time    | Human responsibility                                                                                  | Codex contribution                                                                                      | Exit condition                                                                                                                                                             |
-| --------------- | ------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Define          | 20 min  | Choose the demo journey, required mechanics, and limits. Resolve decisions that block the next slice. | Extract ambiguity, suggest acceptance examples, and identify conflicting requirements.                  | One clear target: four people join, play a round, see the same result, and recover a refreshed seat. Full candidate v1.0 rules remain required for the finished prototype. |
-| Prove           | 30 min  | Pick the two risks most likely to break the demo: rule interpretation and shared state.               | Build controlled scoring examples and a minimal create/join/broadcast experiment.                       | Expected rule outcomes are explicit; four independent sessions see the same room. Agree the state/action contract before splitting work.                                   |
-| Build in slices | 150 min | Assign owners, review each plan and diff, and accept working increments.                              | Implement one bounded slice, run relevant checks, and fix evidenced failures.                           | Integrated gameplay works after each slice; unfinished additions do not displace the demo path.                                                                            |
-| Challenge       | 60 min  | Check failure cases and expected values independently; play together.                                 | Exercise deterministic fixtures, multiple clients, invalid actions, reconnection, and restart recovery. | Rule and transport checks pass; blockers are fixed or the affected optional feature is removed.                                                                            |
-| Rehearse        | 40 min  | Freeze features, run the production build, and rehearse on the presentation devices/network.          | Help prepare start instructions, a short demo script, and a record of limitations.                      | The team can repeat the demo and explain both the evidence and its boundaries.                                                                                             |
+| Stage           | Time    | Human responsibility                                                                           | Codex contribution                                                        | Exit condition                                                                         |
+| --------------- | ------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Define          | 20 min  | Choose the essential player journey, required mechanics, and constraints.                      | Identify ambiguity and propose acceptance examples.                       | A short scope statement and explicit deferred features.                                |
+| Investigate     | 30 min  | Choose the riskiest assumptions, resolve rule decisions, and agree interfaces.                 | Explore controlled rule examples and a minimal multiplayer connection.    | Expected rule outcomes are clear; four independent sessions can share a room state.    |
+| Build in slices | 150 min | Assign owners, review plans and changes, and accept increments.                                | Implement bounded tasks and run relevant checks.                          | Each integrated slice adds working behavior to the prototype.                          |
+| Challenge       | 60 min  | Review expected results independently and exercise failure cases.                              | Check rule boundaries, invalid actions, duplicate commands, and recovery. | Required behavior passes its checks; unresolved blockers have an owner.                |
+| Validate        | 40 min  | Freeze optional scope and run the complete player journey on the intended devices and network. | Help reproduce failures and prepare concise startup instructions.         | Players can join, finish a round, compare results, and recover an interrupted session. |
 
-If the early risk experiment does not pass, pause optional work and simplify the approach. Changing the required rules or demo target is an explicit team decision.
+If an investigation exceeds its timebox, make an explicit team decision: simplify the approach, reduce optional scope, or allocate more time. Do not turn an unresolved assumption into an implicit requirement.
 
-## Three developers, one shared contract
+## Coordinate three developers
 
-Use three human-owned work streams, each with a Codex session. These are suggested responsibilities, not claimed historical assignments.
+Use three human-owned work streams, each supported by a Codex session.
 
-| Owner       | Main responsibility                                                             | Existing code boundary                                          | Cross-review                                                                    |
-| ----------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Developer A | Rules and correctness: scoring, effects, turn transitions, controlled examples. | `shared/engine.ts`, `shared/scoring.ts`, `tests/engine.test.ts` | Developer B checks state transitions and invalid actions.                       |
-| Developer B | Multiplayer and integration: rooms, commands, sessions, reconnect, persistence. | `server/`, `tests/server.test.ts`                               | Developer C checks what the client receives and how failures appear.            |
-| Developer C | Player experience: create/join, lobby, table, prompts, scores, demo flow.       | `src/`                                                          | Developer A checks that visible choices and score explanations match the rules. |
+| Owner       | Responsibility                                                          | Peer review                                                           |
+| ----------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Developer A | Rules, scoring, special-card effects, and controlled examples.          | Developer B checks state transitions and invalid actions.             |
+| Developer B | Rooms, commands, sessions, synchronization, and recovery.               | Developer C checks client-visible state and error handling.           |
+| Developer C | Create/join flow, lobby, table, player prompts, and score explanations. | Developer A checks that the interface represents the rules correctly. |
 
-Agree `shared/types.ts` together and give one person ownership of edits to it. A contract change is announced before dependent code changes. Use separate branches/checkouts, integrate at the end of each slice, and do a brief three-person check whenever a shared contract changes. This prevents three AI sessions from independently inventing incompatible versions of the game.
+Agree the shared state and action types before splitting dependent work. Assign one owner to shared-contract edits and announce changes before updating dependent code. Use separate branches or checkouts, integrate at slice boundaries, and have a brief team check when an interface changes.
 
-## The slice loop
+## Repeat the slice loop
 
-Each task needs only a short brief: **player outcome, relevant rules, allowed files, acceptance examples, and things outside scope**. Keep it in the task conversation or change description; there is no separate specification pack for every feature.
+Each task needs a short brief containing **the player outcome, relevant rules, allowed files, acceptance examples, and exclusions**. Keep the brief in the task conversation or change description.
 
-1. **Spec:** A human supplies the intended behavior. Codex identifies ambiguity and proposes a small plan. Resolve any rule or interface decision that affects the result.
-2. **Slice:** Implement the smallest change that makes that behavior usable through the relevant layers. Preserve the shared contract and avoid unrelated refactors.
-3. **Check:** Run the relevant rule or server tests and inspect the player-facing behavior. A second developer checks the expected result against the rules, rather than accepting an AI-generated test merely because it passes.
-4. **Accept:** Review the diff, integrate, and record only a consequential decision or limitation. If the check fails, return to the brief or implementation before adding scope.
+1. **Spec:** A developer defines the intended behavior. Codex identifies ambiguity and proposes a small plan. Resolve decisions that affect the result before implementation.
+2. **Slice:** Codex implements the smallest usable increment across the necessary layers. The developer keeps the change within its agreed boundaries and reviews the diff.
+3. **Check:** Run the relevant tests and inspect the player-facing behavior. A second developer checks expectations against the agreed rules. AI-generated tests must not serve as their own authority for what is correct.
+4. **Accept:** Integrate only when the acceptance examples pass and peer review is complete. Record consequential decisions or remaining limitations. On failure, revise the brief or implementation and repeat the check.
 
-A practical slice order for this application:
+Work toward the complete required ruleset through these increments:
 
-| Slice                          | Playable outcome                                                                         | Acceptance evidence                                                                 |
-| ------------------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 1. Meet at a table             | Create, join, ready up, and start with four seats.                                       | All sessions show the same roster and settings; only the host can start.            |
-| 2. Complete a basic round      | Draw, bank, bust, and see settled scores.                                                | A controlled hand produces the expected score; all clients receive the same result. |
-| 3. Complete the rules          | Prediction/freeze, Flip Three, Second Chance, bonuses, roulette, and both victory modes. | Fixed card sequences and boundary cases from the rules contract.                    |
-| 4. Recover interrupted play    | Refresh/reconnect, reject stale or repeated actions, and resume saved games.             | Four-client integration checks and restart recovery.                                |
-| 5. Make it easy to demonstrate | Practice bots, clear effect prompts, rulebook, and readable score breakdowns.            | A teammate can follow the complete demo without developer guidance.                 |
+| Slice                    | Player outcome                                                                  | Acceptance example                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Meet at a table          | Create, join, ready up, and start with four seats.                              | Every session shows the same roster and settings; only the host can start.         |
+| Complete a basic round   | Draw, bank, bust, and see settled scores.                                       | A controlled hand produces the expected score in every client.                     |
+| Complete the rules       | Resolve special cards, bonuses, roulette, and both victory modes.               | Fixed card sequences produce the agreed outcomes at rule boundaries.               |
+| Recover interrupted play | Refresh or reconnect without losing the seat; reject stale or repeated actions. | Reconnecting restores the player, and repeating a command does not apply it twice. |
+| Improve usability        | Make turns, effect prompts, and score breakdowns understandable.                | Another player can complete a round without developer guidance.                    |
 
-Accounts, chat, appearance choices, and discovery refinements are additional capabilities present in the final app. In this workflow, expand them only after the required game and recovery path work. Stop optional work when a core check fails or the final rehearsal window begins.
+Treat accounts, chat, and appearance options as additional scope. Start them only after the required game and recovery path work. Stop optional work when a core check fails or the final validation window begins.
 
-### One concrete example: a missed prediction
+### Example task: a missed prediction
 
-The rule is deceptively easy to implement incorrectly: frozen cards stop scoring but still cause duplicate busts.
+Use a concrete sequence to turn a rule into a checkable task:
 
-- **Spec:** A player holds 4 and 9, predicts 6, and receives 2. All three numbers freeze, including the newly drawn 2. The score is zero. Drawing another 4 busts the player when there is no Second Chance.
-- **Slice:** Resolve the prediction and duplicate handling in the engine; exclude frozen numbers from scoring; render the resulting public state and prompt in the client.
-- **Check:** The existing test named `freezes a missed prediction including its new card, then busts on a frozen duplicate` checks this exact sequence in [tests/engine.test.ts](../tests/engine.test.ts). Human review compares the expectation with [game-rules.md](../game-rules.md).
+- **Spec:** A player holds 4 and 9, predicts 6, and receives 2. All three numbers freeze, including the newly drawn 2, and score zero. A later 4 must still cause a duplicate bust when no Second Chance is held.
+- **Slice:** Implement prediction resolution, frozen-card scoring, duplicate detection, and the corresponding public state.
+- **Check:** Use a fixed card sequence to assert the frozen hand, zero score, and later bust. Review the visible state to ensure that frozen cards remain in the hand.
 
-This links a player-visible requirement to an executable example. It also gives a reviewer a specific question: does “frozen” have the same meaning in scoring, duplicate detection, and the UI?
+The human reviewer checks the expected result against the rule definition before accepting the implementation or its tests.
 
-## How to prompt Codex
+## Give Codex bounded tasks
 
-Use ordinary task conversations. No custom agent orchestration is required. These are example prompts to reuse, not transcripts of earlier sessions.
-
-**Clarify before building**
+Use a reusable task brief rather than a broad request to build the application:
 
 ```text
-Read game-rules.md and docs/decisions.md. Focus on prediction and frozen cards.
-List decisions that affect the next implementation slice. For each unresolved
-point, propose an interpretation and a concrete input/output example. Distinguish
-documented decisions from your suggestions. Do not implement until we resolve
-any ambiguity that changes the result.
+Outcome: [one player-visible behavior]
+Context: [relevant rules, interfaces, and existing code]
+Allowed changes: [files or component boundaries]
+Acceptance examples: [inputs, actions, and expected outcomes]
+Outside scope: [features or refactors to leave for another task]
+
+Identify any ambiguity that changes the result and propose a short plan.
+Resolve those decisions with the developer, then implement the agreed slice.
+Run the relevant checks. Report changed behavior, check results, and remaining
+uncertainty. Explain any required expansion of scope before making it.
 ```
 
-**Implement a bounded slice**
+During review, ask Codex to look for counterexamples against the rules and acceptance examples. Have a developer assess the findings and the expected values. Keep implementation and review focused on the same slice.
 
-```text
-Implement the agreed missed-prediction behavior. A hand of [4, 9], a guess of 6,
-and a next numbered card of 2 must freeze all three numbers and score zero.
-A subsequent 4 must still bust unless Second Chance protects the player.
+## Keep acceptance and documentation small
 
-Read the rules and existing tests first. Propose a short plan, then implement
-within shared/engine.ts, shared/scoring.ts, and tests/engine.test.ts. Preserve
-the public contract. If another file or rule decision is required, explain why
-before expanding scope. No UI redesign or unrelated cleanup. Run the relevant
-checks and report the changed behavior, results, and remaining uncertainty.
-```
+A slice is complete when its agreed examples pass, its diff has been reviewed, and the integrated player flow remains usable. Before calling the prototype ready, check the full journey from joining a table to completing a round, including one interrupted connection. Check the production build and access from the intended devices and network.
 
-**Challenge the result**
-
-```text
-Review this diff against game-rules.md, not against the implementation's own
-explanation. Inspect prediction timing, frozen duplicates, Second Chance,
-score calculation, and forced effects. Check whether the expected test values
-follow from the rules. Report concrete failure cases with file references.
-Do not edit during this review. A developer will assess the findings.
-```
-
-## Why this fits the application
-
-| Workflow decision                                | Evidence in the finished prototype                                                                                     | Reason it matters                                                                          |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Make game semantics explicit.                    | [Candidate v1.0 and controlled examples](../game-rules.md).                                                            | Prediction, frozen cards, and multiplier order need unambiguous outcomes.                  |
-| Share the contract across work streams.          | [State/action types](../shared/types.ts) and [score calculation](../shared/scoring.ts).                                | The client can display the same score calculation that the server uses.                    |
-| Let one server own game state.                   | [Engine](../shared/engine.ts), [server](../server/app.ts), and [client connection](../src/useGame.ts).                 | Server-side validation, randomness, versions, and request IDs address conflicting actions. |
-| Spend testing effort on the risky behavior.      | [Rule fixtures](../tests/engine.test.ts) and [HTTP/WebSocket tests](../tests/server.test.ts).                          | Controlled inputs expose rule errors; separate clients expose synchronization failures.    |
-| Keep deployment small enough for a hackathon.    | [One-port startup](../README.md), [local snapshots](../server/store.ts), and [implementation decisions](decisions.md). | Local/LAN play works without provisioning a cloud service or a separate database.          |
-| Judge readiness with a repeatable demonstration. | [Verification record and rehearsal procedure](verification.md).                                                        | A working screen alone cannot establish that four players can finish a round.              |
-
-The rulebook documents a concluded rules investigation, and the verification record documents prior checks.
-
-For the final acceptance checkpoint, use `npm run check`, `npm run build`, and `npm run format:check`, then repeat the four-player browser rehearsal. `npm run test:integration` is the targeted server check during a networking slice; it is already included in the full check. Record the revision, command results, and actual devices/network used.
-
-Keep the scope of the evidence precise: the existing browser record covers four sessions on one computer. Presentation Wi-Fi, four physical devices, real mobile layout, and internet hosting require their own checks. Local persistence is suitable for the single-process prototype; it is not a distributed storage design.
-
-The process stays small: one rules baseline, one shared contract, short slice briefs, targeted checks, and a demo record. Add documentation only when it resolves a decision or makes a check repeatable.
+Use only a few working artifacts: a short scope statement, agreed rules, shared types, slice briefs, targeted tests, and brief decision notes. Update them when behavior or an interface changes. Add documentation when it resolves a decision or makes a check repeatable.

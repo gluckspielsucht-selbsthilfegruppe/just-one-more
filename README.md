@@ -63,7 +63,7 @@ The suite checks the documented scoring boundaries and tabletop replay, special-
 
 See [docs/verification.md](docs/verification.md) for the browser rehearsal and [docs/decisions.md](docs/decisions.md) for implementation assumptions and the architecture.
 
-The [Spec → Slice → Check workflow](docs/ai-workflow.md) proposes a lightweight development process for three developers using Codex, grounded in this prototype. The [presentation notes](docs/workflow-presentation.md) include a short narrative, a slide outline, and a demo script.
+The [Spec → Slice → Check workflow](docs/ai-workflow.md) defines the intended development process for three developers using Codex, with a workflow diagram, timeboxes, responsibilities, and acceptance criteria.
 
 ## Network access and zero cost
 
