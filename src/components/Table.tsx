@@ -28,7 +28,7 @@ import { Avatar, PlayerStatus, Sunburst } from './ui';
 import { HandCards } from './HandCards';
 import { ActiveEffectHint, SpecialCardGuide } from './SpecialCardGuide';
 import { RouletteDialog } from './Roulette';
-import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
+import { AnimatedNumber, Celebration, RoundMoment, useHandFeedback } from './Motion';
 import { rouletteResult, type RouletteBet } from '../roulette';
 import type { SoundCue } from '../audio';
 
@@ -301,6 +301,14 @@ export function Table({
   const [momentQueue, setMomentQueue] = useState<GameEvent[]>([]);
   const [seatMoments, setSeatMoments] = useState<Record<string, GameEvent>>({});
   const seatTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const { scoreCue, milestoneCue, bankCue } = useHandFeedback({
+    scope: `${room.gameId}:${room.round}`,
+    sequence: room.eventSequence,
+    value: score.subtotal,
+    count: score.count,
+    status: me.status,
+    roulette: me.roulette,
+  });
   const moment = momentQueue[0];
   const roundOver = room.phase === 'round-end' || room.phase === 'finished';
   const winner = room.players.find((p) => p.id === room.winnerId);
@@ -590,6 +598,24 @@ export function Table({
                   <AnimatedNumber value={me.status === 'banked' ? me.roundScore : score.subtotal} />
                 </strong>
                 <span>{me.status === 'banked' ? 'banked' : 'round points'}</span>
+                {scoreCue && (
+                  <span
+                    key={scoreCue.id}
+                    className={`score-pop ${scoreCue.delta > 0 ? 'gain' : 'drop'}`}
+                    aria-hidden="true"
+                  >
+                    {scoreCue.delta > 0 ? '+' : '−'}
+                    {Math.abs(scoreCue.delta)}
+                  </span>
+                )}
+                {bankCue !== null && (
+                  <span key={bankCue} className="bank-lock" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <b>LOCKED IN</b>
+                  </span>
+                )}
               </div>
             </div>
             <HandCards player={me} />
@@ -599,7 +625,10 @@ export function Table({
                 <span>
                   {score.count} unfrozen number{score.count !== 1 ? 's' : ''}
                 </span>
-                <div className="count-dots" aria-label={`${score.count} of 10 unfrozen numbers`}>
+                <div
+                  className={`count-dots ${milestoneCue !== null ? 'milestone-unlocked' : ''}`}
+                  aria-label={`${score.count} of 10 unfrozen numbers`}
+                >
                   {Array.from({ length: 10 }, (_, i) => (
                     <i
                       key={i}
@@ -607,6 +636,11 @@ export function Table({
                     />
                   ))}
                 </div>
+                {milestoneCue !== null && (
+                  <strong key={milestoneCue} className="milestone-flash" aria-hidden="true">
+                    +15 BONUS
+                  </strong>
+                )}
               </div>
               <span className="bonus-hint">
                 {score.count < 7
