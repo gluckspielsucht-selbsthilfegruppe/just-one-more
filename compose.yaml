@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    init: true
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      COOKIE_SECURE: '${COOKIE_SECURE:-false}'
+    volumes:
+      - game-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  game-data:
