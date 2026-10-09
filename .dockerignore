@@ -1,0 +1,18 @@
+# Only send build inputs; exclude local snapshots, credentials, and dependencies.
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!vite.config.ts
+!vitest.config.ts
+!index.html
+!public/
+!public/**
+!src/
+!src/**
+!server/
+!server/**
+!shared/
+!shared/**
+!tests/
+!tests/**

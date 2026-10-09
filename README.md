@@ -24,7 +24,36 @@ npm start
 
 Both modes serve the website and WebSocket connection from one port. The production build bundles its fonts, icons, and all assets locally; gameplay has no third-party service dependency.
 
-After changing code in production mode, stop the running server, run `npm run build`, and run `npm start` again. Rebuilding alone updates the page assets but leaves the running server on its previous code. Use `npm run dev` during development to reload both automatically.
+## Run with Docker
+
+Requires Docker with the Compose plugin. Node.js and npm are not required on the host.
+
+```sh
+docker compose up --build -d
+```
+
+Open **http://localhost:3000**. The container runs the production app and serves HTTP and WebSockets on the same port. For friends on your local network, use the **host computer's LAN IP**, such as `http://192.168.1.42:3000`; the network address printed inside the container belongs to Docker and is not the invitation address.
+
+```sh
+docker compose ps          # includes the HTTP health-check status
+docker compose logs -f app
+docker compose down        # stop and remove the container; keep saved data
+```
+
+To use another host port, run `PORT=8080 docker compose up --build -d` and open `http://localhost:8080`. The internal port remains 3000. If you put the app behind HTTPS, set `COOKIE_SECURE=true` when starting Compose; use the default `false` for local HTTP.
+
+Games, accounts, and sessions persist in the Compose-managed `game-data` volume mounted at `/app/data`. Rebuilds and container replacement retain this data. **`docker compose down --volumes` deletes it.** This volume starts independently of any existing host `./data` directory; host `DATA_DIR` settings do not change the Compose volume. Keep one app container per volume.
+
+To back up the snapshot, stop the app before copying it:
+
+```sh
+mkdir -p data
+docker compose stop app
+docker compose cp app:/app/data/game.json ./data/game-backup.json
+docker compose start app
+```
+
+Treat the backup as private: it contains account and session data. The image uses a multi-stage build, includes only production dependencies, runs as the unprivileged `node` user, and checks `/api/health`. Source changes require rebuilding the image with the startup command above.
 
 ## What is included
 
