@@ -152,6 +152,8 @@ The suite checks the documented scoring boundaries and tabletop replay, special-
 
 See [docs/verification.md](docs/verification.md) for the browser rehearsal and [docs/decisions.md](docs/decisions.md) for implementation assumptions and the architecture.
 
+The [Spec → Slice → Check workflow](docs/ai-workflow.md) defines the intended development process for three developers using Codex, with a workflow diagram, timeboxes, responsibilities, and acceptance criteria.
+
 ## Network access and zero cost
 
 Local and LAN operation follow [tech-constraints.md](tech-constraints.md). The optional [Quick Tunnel setup](#play-over-the-internet-with-a-quick-tunnel) adds internet access through Cloudflare while the app and saved data stay on your computer. No paid plan or trial is configured. For a directly running Node server, Ctrl+C stops the service; for Docker, use the Compose stop/down commands above.
