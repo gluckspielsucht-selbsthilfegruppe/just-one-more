@@ -1,20 +1,17 @@
 import { Headphones, Pause, Play, Volume2, VolumeX } from 'lucide-react';
-import type { Profile } from '../../shared/types';
 import type { useGameAudio } from '../useGameAudio';
-import { SOUNDTRACKS } from '../audio';
+import { SOUNDTRACKS, type AudioSettings } from '../audio';
 import { Modal } from './ui';
 
 export function AudioControls({
   audio,
-  appearance,
   onClose,
 }: {
   audio: ReturnType<typeof useGameAudio>;
-  appearance: Profile['appearance'];
   onClose: () => void;
 }) {
   const { settings, update, unlocked, error } = audio;
-  const track = SOUNDTRACKS[appearance];
+  const track = SOUNDTRACKS[audio.soundtrack];
   const playing = settings.music && unlocked;
   return (
     <Modal
@@ -23,6 +20,20 @@ export function AudioControls({
       onClose={onClose}
       className="audio-modal"
     >
+      <label className="form-field">
+        Music style
+        <select
+          value={settings.style}
+          onChange={(e) => update({ style: e.target.value as AudioSettings['style'] })}
+        >
+          <option value="theme">Follow app theme</option>
+          {Object.entries(SOUNDTRACKS).map(([id, { name }]) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className={`record-player ${playing ? 'playing' : ''}`}>
         <div className="record-disc" aria-hidden="true">
           <div>
@@ -84,8 +95,8 @@ export function AudioControls({
         </p>
       )}
       <p className="audio-note">
-        An original loop for every theme. Music pauses when you leave this tab. Your sound
-        preferences stay on this device.
+        Pick your own soundtrack or follow your app theme. Music pauses when you leave this tab.
+        Your sound preferences stay on this device.
       </p>
     </Modal>
   );

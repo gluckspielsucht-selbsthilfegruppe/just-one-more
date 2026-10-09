@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRoom, makePlayer, toPublicRoom, DEFAULT_SETTINGS } from '../shared/engine';
 import { rouletteResult, rouletteRotation, type RouletteBet } from '../src/roulette';
-import { GameAudio, readAudioSettings } from '../src/audio';
+import {
+  DEFAULT_AUDIO_SETTINGS,
+  GameAudio,
+  readAudioSettings,
+  resolveSoundtrack,
+  type AudioSettings,
+} from '../src/audio';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -69,18 +75,48 @@ describe('audio preferences and lifecycle', () => {
         throw new Error('blocked');
       },
     });
-    expect(readAudioSettings()).toEqual({ music: false, effects: false, volume: 0.35 });
+    expect(readAudioSettings()).toEqual(DEFAULT_AUDIO_SETTINGS);
   });
   it('preserves the existing sound setting without opting into music', () => {
     vi.stubGlobal('localStorage', {
       getItem: (key: string) => (key === 'jom-sound' ? 'true' : null),
     });
-    expect(readAudioSettings()).toEqual({ music: false, effects: true, volume: 0.35 });
+    expect(readAudioSettings()).toEqual({ ...DEFAULT_AUDIO_SETTINGS, effects: true });
   });
   it('clamps a stored volume to the supported range', () => {
     vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ music: true, volume: 900 }) });
     expect(readAudioSettings().volume).toBe(1);
   });
+  it.each(['theme', 'neon', 'velvet', 'pop'] as const)(
+    'restores the saved %s music style',
+    (style) => {
+      const saved = { music: true, effects: true, volume: 0.6, style };
+      vi.stubGlobal('localStorage', { getItem: () => JSON.stringify(saved) });
+      expect(readAudioSettings()).toEqual(saved);
+    },
+  );
+  it.each([undefined, null, 'unknown', 'toString', 42])(
+    'falls back to theme music for a legacy or invalid style (%s)',
+    (style) => {
+      vi.stubGlobal('localStorage', {
+        getItem: () => JSON.stringify({ music: true, effects: false, volume: 0.2, style }),
+      });
+      expect(readAudioSettings()).toEqual({
+        music: true,
+        effects: false,
+        volume: 0.2,
+        style: 'theme',
+      });
+    },
+  );
+  it.each(['neon', 'velvet', 'pop'] as const)(
+    'follows the %s theme only when requested',
+    (appearance) => {
+      expect(resolveSoundtrack('theme', appearance)).toBe(appearance);
+      for (const style of ['neon', 'velvet', 'pop'] as const)
+        expect(resolveSoundtrack(style, appearance)).toBe(style);
+    },
+  );
   it('uses one scheduler, pauses in hidden tabs, and releases audio on unmount', async () => {
     vi.useFakeTimers();
     const param = () => ({
@@ -138,7 +174,7 @@ describe('audio preferences and lifecycle', () => {
     vi.stubGlobal('AudioContext', Context);
     vi.stubGlobal('OscillatorNode', Oscillator);
     const audio = new GameAudio();
-    const settings = { music: true, effects: false, volume: 0.35 };
+    const settings: AudioSettings = { ...DEFAULT_AUDIO_SETTINGS, music: true };
     audio.configure(settings, 'neon');
     expect(contexts).toHaveLength(0);
     await audio.unlock();
@@ -157,6 +193,42 @@ describe('audio preferences and lifecycle', () => {
     await audio.setVisible(true);
     expect(vi.getTimerCount()).toBe(1);
     audio.configure(settings, 'velvet');
+    expect(vi.getTimerCount()).toBe(1);
+
+    // Explicit music choices switch immediately and stop the previous loop.
+    const previousNotes = nodes.slice();
+    audio.configure({ ...settings, style: 'pop' }, 'velvet');
+    expect(previousNotes.every((node) => node.stop.mock.calls.length >= 2)).toBe(true);
+    const discoNotes = nodes.slice(previousNotes.length);
+    expect(discoNotes.length).toBeGreaterThan(0);
+    expect(contexts).toHaveLength(1);
+    expect(vi.getTimerCount()).toBe(1);
+
+    // Changing the app theme must not interrupt an explicitly selected style.
+    const beforeThemeChange = nodes.length;
+    audio.configure({ ...settings, style: 'pop' }, 'neon');
+    expect(nodes).toHaveLength(beforeThemeChange);
+    expect(discoNotes.every((node) => node.stop.mock.calls.length === 1)).toBe(true);
+
+    // Switching back to theme mode resumes following the current appearance.
+    audio.configure(settings, 'neon');
+    expect(nodes.length).toBeGreaterThan(beforeThemeChange);
+    expect(discoNotes.every((node) => node.stop.mock.calls.length >= 2)).toBe(true);
+
+    // Style selection never starts music that the user has paused.
+    audio.configure({ ...settings, music: false }, 'neon');
+    const pausedCount = nodes.length;
+    audio.configure({ ...settings, music: false, style: 'velvet' }, 'neon');
+    expect(nodes).toHaveLength(pausedCount);
+    expect(vi.getTimerCount()).toBe(0);
+
+    // Hidden tabs keep the new selection silent until they become visible.
+    await audio.setVisible(false);
+    audio.configure({ ...settings, style: 'velvet' }, 'neon');
+    expect(nodes).toHaveLength(pausedCount);
+    expect(vi.getTimerCount()).toBe(0);
+    await audio.setVisible(true);
+    expect(nodes.length).toBeGreaterThan(pausedCount);
     expect(vi.getTimerCount()).toBe(1);
     audio.dispose();
     expect(vi.getTimerCount()).toBe(0);

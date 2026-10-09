@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Profile } from '../shared/types';
-import { GameAudio, readAudioSettings, type AudioSettings, type SoundCue } from './audio';
+import {
+  GameAudio,
+  readAudioSettings,
+  resolveSoundtrack,
+  type AudioSettings,
+  type SoundCue,
+} from './audio';
 
 export function useGameAudio(appearance: Profile['appearance']) {
   const [settings, setSettings] = useState(readAudioSettings);
@@ -55,5 +61,12 @@ export function useGameAudio(appearance: Profile['appearance']) {
     if (next.music || next.effects) void unlock();
   };
   const play = useCallback((cue: SoundCue) => engine.current?.play(cue), []);
-  return { settings, update, play, unlocked, error };
+  return {
+    settings,
+    update,
+    play,
+    unlocked,
+    error,
+    soundtrack: resolveSoundtrack(settings.style, appearance),
+  };
 }
