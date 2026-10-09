@@ -36,6 +36,8 @@ export interface GameEvent {
   id: number;
   text: string;
   type: 'info' | 'draw' | 'bust' | 'bank' | 'special' | 'win';
+  playerId?: string;
+  moment?: 'prediction-hit' | 'bust' | 'bank' | 'roulette-loss' | 'roulette-win';
 }
 export interface RoundResult {
   round: number;

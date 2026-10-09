@@ -137,6 +137,22 @@ describe('authoritative turns and special-card chains', () => {
     r.prompt = { kind: 'guess', actorId: 'a' };
     r = applyAction(r, 'a', { type: 'guess', value: 7 });
     expect(r.players[0].status).toBe('busted');
+    expect(
+      r.events.filter((event) => event.moment).map((event) => [event.moment, event.playerId]),
+    ).toEqual([
+      ['prediction-hit', 'a'],
+      ['bust', 'a'],
+    ]);
+  });
+  it('labels bank and roulette outcomes for the matching seat', () => {
+    for (const [roulette, random, moment] of [
+      [false, 0, 'bank'],
+      [true, 0, 'roulette-loss'],
+      [true, 0.9, 'roulette-win'],
+    ] as const) {
+      const r = applyAction(fixture([8]), 'a', { type: 'bank', roulette }, () => random);
+      expect(r.events.at(-1)).toMatchObject({ playerId: 'a', moment });
+    }
   });
   it('disables old and intervening score modifiers on a miss, preserves protection, and resolves queued actions', () => {
     let r = fixture([4, 9], [card(0, 'prediction'), card(8, 'bonus'), card(4), card(5)]);

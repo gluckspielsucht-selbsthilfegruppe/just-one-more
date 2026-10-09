@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, Check, Dices, Sparkles } from 'lucide-react';
 import { Modal } from './ui';
 import { AnimatedNumber, Celebration } from './Motion';
@@ -91,7 +91,7 @@ export function RouletteDialog({
       className="roulette-modal"
     >
       <div
-        className={`roulette-show ${phase} ${revealed && settled.multiplier === 2 ? 'won' : ''}`}
+        className={`roulette-show ${phase} ${revealed && settled.multiplier === 2 ? 'won' : ''} ${revealed && settled.multiplier === 0 ? 'lost' : ''}`}
       >
         {revealed && settled.multiplier === 2 && <Celebration />}
         <div className="roulette-marquee">
@@ -104,12 +104,15 @@ export function RouletteDialog({
           <div className="wheel-pointer" />
           <div className="wheel-rim">
             <svg
-              className="roulette-wheel"
+              className={`roulette-wheel ${turning ? 'is-spinning' : ''}`}
               viewBox="0 0 320 320"
-              style={{
-                transform: `rotate(${rotation}deg)`,
-                transitionDuration: reduced ? '0ms' : `${SPIN_DURATION}ms`,
-              }}
+              style={
+                {
+                  transform: `rotate(${rotation}deg)`,
+                  '--wheel-end': `${rotation}deg`,
+                  '--spin-duration': `${SPIN_DURATION}ms`,
+                } as CSSProperties
+              }
             >
               {Array.from({ length: 12 }, (_, i) => {
                 const start = ((i * 30 - 90) * Math.PI) / 180;
@@ -138,11 +141,8 @@ export function RouletteDialog({
               <span>MORE</span>
             </div>
             <div
-              className="wheel-ball-orbit"
-              style={{
-                transform: `rotate(${settled ? -1080 : 0}deg)`,
-                transitionDuration: reduced ? '0ms' : `${SPIN_DURATION}ms`,
-              }}
+              className={`wheel-ball-orbit ${turning ? 'is-spinning' : ''}`}
+              style={{ transform: `rotate(${settled ? -1800 : 0}deg)` }}
             >
               <i />
             </div>

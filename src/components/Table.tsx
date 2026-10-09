@@ -22,11 +22,11 @@ import {
   X,
 } from 'lucide-react';
 import { scoreHand } from '../../shared/scoring';
-import type { Player, Profile, PublicRoom } from '../../shared/types';
+import type { GameEvent, Player, Profile, PublicRoom } from '../../shared/types';
 import type { Command } from '../App';
 import { Avatar, PlayingCard, PlayerStatus, Sunburst } from './ui';
 import { RouletteDialog } from './Roulette';
-import { AnimatedNumber, Celebration } from './Motion';
+import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
 import { rouletteResult, type RouletteBet } from '../roulette';
 import type { SoundCue } from '../audio';
 
@@ -291,6 +291,15 @@ export function Table({
   const [chat, setChat] = useState('');
   const [activityTab, setActivityTab] = useState<'activity' | 'rounds'>('activity');
   const activity = useRef<HTMLDivElement>(null);
+  const seenMoments = useRef({
+    gameId: room.gameId,
+    round: room.round,
+    sequence: room.eventSequence,
+  });
+  const [momentQueue, setMomentQueue] = useState<GameEvent[]>([]);
+  const [seatMoments, setSeatMoments] = useState<Record<string, GameEvent>>({});
+  const seatTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const moment = momentQueue[0];
   const roundOver = room.phase === 'round-end' || room.phase === 'finished';
   const winner = room.players.find((p) => p.id === room.winnerId);
   useEffect(() => {
@@ -299,6 +308,60 @@ export function Table({
   useEffect(() => {
     setGuess(null);
   }, [room.round, room.phase, room.prompt?.kind]);
+  useEffect(() => {
+    const timers = seatTimers.current;
+    return () => timers.forEach(clearTimeout);
+  }, []);
+  useEffect(() => {
+    const previous = seenMoments.current;
+    seenMoments.current = { gameId: room.gameId, round: room.round, sequence: room.eventSequence };
+    if (previous.gameId !== room.gameId || previous.round !== room.round) {
+      setMomentQueue([]);
+      setSeatMoments({});
+      seatTimers.current.forEach(clearTimeout);
+      seatTimers.current.clear();
+      return;
+    }
+    const fresh = room.events.filter((event) => event.id > previous.sequence && event.moment);
+    for (const event of fresh) {
+      if (!event.playerId) continue;
+      const playerId = event.playerId;
+      clearTimeout(seatTimers.current.get(playerId));
+      setSeatMoments((seats) => ({ ...seats, [playerId]: event }));
+      seatTimers.current.set(
+        playerId,
+        setTimeout(() => {
+          setSeatMoments((seats) => {
+            if (seats[playerId]?.id !== event.id) return seats;
+            const next = { ...seats };
+            delete next[playerId];
+            return next;
+          });
+          seatTimers.current.delete(playerId);
+        }, 1500),
+      );
+    }
+    const splashes = fresh.filter((event) => event.moment !== 'bank');
+    if (splashes.length) setMomentQueue((queue) => [...queue, ...splashes]);
+  }, [room.gameId, room.round, room.eventSequence]);
+  useEffect(() => {
+    if (!moment) return;
+    const timer = setTimeout(() => setMomentQueue((queue) => queue.slice(1)), 2300);
+    return () => clearTimeout(timer);
+  }, [moment]);
+  const momentPlayer = moment?.playerId
+    ? room.players.find((player) => player.id === moment.playerId)
+    : null;
+  const momentClass = (playerId: string) => {
+    const seat = seatMoments[playerId];
+    return seat
+      ? seat.moment === 'bust' || seat.moment === 'roulette-loss'
+        ? 'moment-bust'
+        : seat.moment === 'bank'
+          ? 'moment-bank'
+          : 'moment-hit'
+      : '';
+  };
   const action = (value: Record<string, unknown>) => send('action', { action: value });
   return (
     <>
@@ -338,7 +401,7 @@ export function Table({
             .sort((a, b) => b.total - a.total)
             .map((p, i) => (
               <div
-                className={`standing ${p.id === profile.id ? 'self' : ''} ${p.id === actorId && !roundOver ? 'current' : ''}`}
+                className={`standing ${p.id === profile.id ? 'self' : ''} ${p.id === actorId && !roundOver ? 'current' : ''} ${momentClass(p.id)}`}
                 key={p.id}
               >
                 <div className="standing-main">
@@ -497,12 +560,17 @@ export function Table({
                 {room.players
                   .filter((p) => p.id !== profile.id)
                   .map((p) => (
-                    <Opponent key={p.id} player={p} current={p.id === actorId} />
+                    <Opponent
+                      key={p.id}
+                      player={p}
+                      current={p.id === actorId}
+                      momentClass={momentClass(p.id)}
+                    />
                   ))}
               </div>
             </>
           )}
-          <div className={`your-hand hand-${me.status}`}>
+          <div className={`your-hand hand-${me.status} ${momentClass(me.id)}`}>
             <div className="hand-heading">
               <div className="hand-player">
                 <Avatar player={me} />
@@ -534,6 +602,7 @@ export function Table({
                 </div>
               )}
             </div>
+            {me.status === 'busted' && <span className="hand-eliminated">OUT THIS ROUND</span>}
             <div className="hand-bottom">
               <div className="count-milestone">
                 <span>
@@ -774,14 +843,25 @@ export function Table({
           playSound={playSound}
         />
       )}
+      {moment && momentPlayer && (
+        <RoundMoment key={moment.id} event={moment} name={momentPlayer.name} />
+      )}
     </>
   );
 }
-function Opponent({ player, current }: { player: Player; current: boolean }) {
+function Opponent({
+  player,
+  current,
+  momentClass,
+}: {
+  player: Player;
+  current: boolean;
+  momentClass: string;
+}) {
   const score = scoreHand(player);
   return (
     <article
-      className={`opponent ${current ? 'current' : ''} ${player.status === 'busted' ? 'busted' : ''}`}
+      className={`opponent ${current ? 'current' : ''} ${player.status === 'busted' ? 'busted' : ''} ${momentClass}`}
     >
       <div className="opponent-heading">
         <Avatar player={player} />
@@ -806,6 +886,7 @@ function Opponent({ player, current }: { player: Player; current: boolean }) {
       {player.predictionMultiplier > 1 && (
         <span className="mini-multiplier">×{player.predictionMultiplier} prediction</span>
       )}
+      {player.status === 'busted' && <span className="opponent-eliminated">OUT THIS ROUND</span>}
     </article>
   );
 }

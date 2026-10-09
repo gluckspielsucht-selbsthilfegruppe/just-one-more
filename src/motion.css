@@ -189,8 +189,10 @@
   width: 100%;
   height: 100%;
   overflow: visible;
-  transition-property: transform;
-  transition-timing-function: cubic-bezier(0.12, 0.72, 0.12, 1);
+  will-change: transform;
+}
+.roulette-wheel.is-spinning {
+  animation: roulette-wheel-spin var(--spin-duration) both;
 }
 .roulette-wheel path {
   stroke: var(--paper);
@@ -263,9 +265,11 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  transition-property: transform;
-  transition-timing-function: cubic-bezier(0.15, 0.65, 0.14, 1);
   pointer-events: none;
+  will-change: transform;
+}
+.wheel-ball-orbit.is-spinning {
+  animation: roulette-ball-spin 4200ms both;
 }
 .wheel-ball-orbit i {
   position: absolute;
@@ -276,6 +280,15 @@
   border-radius: 50%;
   background: radial-gradient(circle at 30% 25%, #fff 15%, #faf1cf 50%, #9b8c61 100%);
   box-shadow: 0 2px 5px #0008;
+}
+.wheel-ball-orbit.is-spinning i {
+  animation: roulette-ball-drop 4200ms both;
+}
+.roulette-show.result .wheel-ball-orbit i {
+  top: 27px;
+  box-shadow:
+    0 1px 3px #0009,
+    0 0 0 2px #fff8;
 }
 .wheel-result-seal {
   position: absolute;
@@ -298,16 +311,26 @@
 .roulette-show.spinning .wheel-halo {
   animation: roulette-halo 1.1s ease-in-out infinite;
 }
+.roulette-show.spinning .wheel-pointer {
+  animation: roulette-pointer-tick 125ms ease-in-out infinite alternate;
+}
 .roulette-show.requesting .wheel-hub {
   animation: turn-pulse 1.6s ease-in-out infinite;
-}
-.roulette-show.result :is(.roulette-wheel, .wheel-ball-orbit) {
-  transition: none;
 }
 .roulette-show.won .wheel-rim {
   box-shadow:
     0 0 0 1px var(--orange),
     0 0 35px color-mix(in srgb, var(--orange) 40%, transparent);
+}
+.roulette-show.lost .wheel-rim {
+  filter: saturate(0.5);
+  box-shadow:
+    0 0 0 2px #9e514d,
+    0 0 34px #9e514d99;
+}
+.roulette-show.lost .wheel-result-seal {
+  background: #8e3537;
+  animation: roulette-loss-stamp 650ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 .roulette-outcomes {
   display: grid;
@@ -742,6 +765,297 @@
   50% {
     box-shadow: 0 0 22px color-mix(in srgb, var(--orange) 20%, transparent);
     opacity: 0.6;
+  }
+}
+@keyframes roulette-wheel-spin {
+  0% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.8, 0.55);
+  }
+  15% {
+    transform: rotate(390deg);
+    animation-timing-function: linear;
+  }
+  48% {
+    transform: rotate(1190deg);
+    animation-timing-function: cubic-bezier(0.12, 0.62, 0.12, 1);
+  }
+  100% {
+    transform: rotate(var(--wheel-end));
+  }
+}
+@keyframes roulette-ball-spin {
+  0% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.32, 0, 0.75, 0.52);
+  }
+  15% {
+    transform: rotate(-440deg);
+    animation-timing-function: linear;
+  }
+  50% {
+    transform: rotate(-1310deg);
+    animation-timing-function: cubic-bezier(0.12, 0.62, 0.1, 1);
+  }
+  100% {
+    transform: rotate(-1800deg);
+  }
+}
+@keyframes roulette-ball-drop {
+  0%,
+  69% {
+    top: 12px;
+  }
+  83% {
+    top: 24px;
+  }
+  91% {
+    top: 19px;
+  }
+  100% {
+    top: 27px;
+  }
+}
+@keyframes roulette-pointer-tick {
+  to {
+    transform: rotate(7deg) translateY(2px);
+  }
+}
+@keyframes roulette-loss-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.3) rotate(-23deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(0.87) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(-6deg);
+  }
+}
+
+/* Round moments are keyed to server events, so they play once for every seat. */
+.round-moment {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  overflow: hidden;
+  text-align: center;
+  animation: moment-screen 2300ms both;
+}
+.round-moment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, #762d29b8, #1a1517e8 75%);
+}
+.round-moment.hit::before {
+  background: radial-gradient(
+    circle at center,
+    color-mix(in srgb, var(--orange) 80%, #fff) 0%,
+    #181b18dd 74%
+  );
+}
+.round-moment-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff9ec;
+  padding: 20px;
+  text-shadow: 0 4px 20px #0008;
+  animation: moment-copy 700ms cubic-bezier(0.15, 1.3, 0.3, 1) both;
+}
+.moment-icon {
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  margin-bottom: 25px;
+  box-shadow:
+    0 0 0 12px #fff2,
+    0 0 70px #fff4;
+}
+.round-moment.loss .moment-icon {
+  animation: moment-omen 400ms 2 alternate;
+}
+.moment-eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+}
+.round-moment-copy strong {
+  font-family: var(--display), 'Space Grotesk Variable', sans-serif;
+  font-weight: 800;
+  font-size: clamp(66px, 15vw, 190px);
+  line-height: 1;
+  letter-spacing: -0.07em;
+}
+.moment-player {
+  font-size: clamp(14px, 2.2vw, 23px);
+  font-weight: 600;
+}
+.round-moment .celebration {
+  z-index: 1;
+}
+.round-moment .celebration i {
+  top: -20px;
+  width: 11px;
+  height: 22px;
+  animation-duration: 2300ms;
+}
+.app .your-hand {
+  position: relative;
+}
+.app .your-hand.moment-bust,
+.app .opponent.moment-bust,
+.app .standing.moment-bust {
+  animation: seat-eliminated 900ms ease-out both;
+}
+.app .your-hand.moment-hit,
+.app .opponent.moment-hit,
+.app .standing.moment-hit {
+  animation: seat-celebrate 1500ms ease-out both;
+}
+.app .your-hand.moment-bank,
+.app .opponent.moment-bank,
+.app .standing.moment-bank {
+  animation: seat-bank 900ms ease-out both;
+}
+.app .your-hand.moment-bust .playing-card:nth-child(odd),
+.app .opponent.moment-bust .playing-card:nth-child(odd) {
+  animation: card-eliminated-left 1100ms ease-in both;
+}
+.app .your-hand.moment-bust .playing-card:nth-child(even),
+.app .opponent.moment-bust .playing-card:nth-child(even) {
+  animation: card-eliminated-right 1100ms ease-in both;
+}
+.hand-eliminated,
+.opponent-eliminated {
+  position: absolute;
+  z-index: 2;
+  right: 15px;
+  bottom: 15px;
+  display: inline-block;
+  padding: 6px 9px;
+  border: 2px solid #9f3937;
+  color: #9f3937;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  transform: rotate(-8deg);
+}
+.app .opponent {
+  position: relative;
+}
+.opponent-eliminated {
+  right: 8px;
+  bottom: 8px;
+  font-size: 7px;
+  padding: 3px 5px;
+}
+@keyframes moment-screen {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes moment-copy {
+  0% {
+    opacity: 0;
+    transform: scale(1.7) rotate(-8deg);
+    filter: blur(10px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(0.92) rotate(2deg);
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes moment-omen {
+  to {
+    transform: scale(1.2);
+    box-shadow:
+      0 0 0 25px #fff0,
+      0 0 90px #e95757;
+  }
+}
+@keyframes seat-eliminated {
+  0% {
+    filter: none;
+    transform: translateX(0);
+  }
+  15%,
+  45% {
+    transform: translateX(-7px) rotate(-1deg);
+  }
+  30%,
+  60% {
+    transform: translateX(7px) rotate(1deg);
+  }
+  75% {
+    filter: saturate(0.2) drop-shadow(0 0 15px #a63b3b);
+  }
+  100% {
+    filter: saturate(0.55);
+    transform: translateX(0);
+  }
+}
+@keyframes seat-celebrate {
+  30% {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow:
+      0 0 0 9px color-mix(in srgb, var(--orange) 30%, transparent),
+      0 0 55px var(--orange);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes seat-bank {
+  25% {
+    transform: translateY(-5px);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--orange) 18%, transparent);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes card-eliminated-left {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  100% {
+    opacity: 0.22;
+    transform: translate(-18px, 34px) rotate(-20deg);
+  }
+}
+@keyframes card-eliminated-right {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  100% {
+    opacity: 0.22;
+    transform: translate(17px, 38px) rotate(18deg);
   }
 }
 @keyframes equalizer {

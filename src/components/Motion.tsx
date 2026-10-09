@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Skull, Sparkles } from 'lucide-react';
+import type { GameEvent } from '../../shared/types';
 import { useReducedMotion } from '../motion';
 
 export function AnimatedNumber({ value, from }: { value: number; from?: number }) {
@@ -46,6 +48,30 @@ export function Celebration() {
           }
         />
       ))}
+    </div>
+  );
+}
+
+export function RoundMoment({ event, name }: { event: GameEvent; name: string }) {
+  const lost = event.moment === 'bust' || event.moment === 'roulette-loss';
+  return (
+    <div className={`round-moment ${lost ? 'loss' : 'hit'}`} role="status" aria-live="polite">
+      {!lost && <Celebration />}
+      <div className="round-moment-copy">
+        <span className="moment-icon">{lost ? <Skull size={38} /> : <Sparkles size={38} />}</span>
+        <span className="moment-eyebrow">{lost ? 'THE ROUND CLAIMS ANOTHER' : 'WHAT A CALL'}</span>
+        <strong>
+          {lost ? 'BUSTED' : event.moment === 'prediction-hit' ? 'NAILED IT!' : 'DOUBLE UP!'}
+        </strong>
+        <span className="moment-player">
+          {name}{' '}
+          {lost
+            ? 'is out this round'
+            : event.moment === 'prediction-hit'
+              ? 'called it perfectly'
+              : 'beats the wheel'}
+        </span>
+      </div>
     </div>
   );
 }
