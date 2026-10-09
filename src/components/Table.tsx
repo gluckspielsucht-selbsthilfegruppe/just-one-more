@@ -28,7 +28,8 @@ import { Avatar, PlayerStatus, Sunburst } from './ui';
 import { HandCards } from './HandCards';
 import { ActiveEffectHint, SpecialCardGuide } from './SpecialCardGuide';
 import { RouletteDialog } from './Roulette';
-import { AnimatedNumber, Celebration, RoundMoment, useHandFeedback } from './Motion';
+import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
+import { useHandFeedback } from '../motion';
 import { rouletteResult, type RouletteBet } from '../roulette';
 import type { SoundCue } from '../audio';
 
