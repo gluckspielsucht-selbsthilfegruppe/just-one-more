@@ -781,7 +781,6 @@ body {
 }
 .app .opponent.busted {
   background: var(--paper);
-  opacity: 0.75;
 }
 .app .opponent-heading strong {
   font-size: 12px;

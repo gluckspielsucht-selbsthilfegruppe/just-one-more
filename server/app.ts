@@ -137,27 +137,11 @@ export function createApplication(
   function connected(id: string) {
     return [...clients.values()].some((c) => c.userId === id);
   }
-  function recordResults(room: Room) {
-    if (room.phase !== 'finished' || store.data.completed.includes(room.gameId)) return;
-    store.data.completed.push(room.gameId);
-    for (const p of room.players) {
-      const user = store.data.users[p.id];
-      if (!user) continue;
-      user.stats.games++;
-      if (p.id === room.winnerId) user.stats.wins++;
-      user.stats.bestScore = Math.max(user.stats.bestScore, p.total);
-      user.stats.rounds += room.round;
-      user.stats.bestRound = Math.max(
-        user.stats.bestRound,
-        ...room.history.map((r) => r.scores.find((s) => s.id === p.id)?.score ?? 0),
-      );
-    }
-  }
   function commit(room?: Room) {
     if (room) {
       room.version++;
       room.updatedAt = Date.now();
-      recordResults(room);
+      store.recordResults(room);
     }
     store.save();
     broadcast();

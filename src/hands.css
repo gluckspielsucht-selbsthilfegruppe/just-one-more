@@ -1,0 +1,77 @@
+.app .card-hand {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  justify-content: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+.card-row-group {
+  min-width: 0;
+}
+.card-row-label {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  margin: 0 8px 2px;
+}
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 8px 16px;
+  scrollbar-width: thin;
+}
+.card-row:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+.card-row-empty {
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.card-hand .multiplier-token {
+  position: relative;
+  flex-shrink: 0;
+}
+.opponent-cards .card-row {
+  gap: 4px;
+  padding: 5px 6px 12px;
+}
+.app .opponent-cards .multiplier-token {
+  width: 58px;
+  height: 49px;
+  gap: 1px;
+}
+.app .opponent-cards .multiplier-token strong {
+  font-size: 15px;
+}
+.app .opponent-cards .multiplier-token span {
+  font-size: 8px;
+}
+.card-hand :is(.playing-card, .multiplier-token) {
+  transition: filter 450ms ease;
+}
+.card-hand :is(.playing-card, .multiplier-token)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgb(220 223 227 / 22%);
+  box-shadow:
+    0 0 0 2px rgb(220 223 227 / 65%),
+    0 4px 12px rgb(220 223 227 / 55%);
+  opacity: 0;
+  transition: opacity 450ms ease;
+}
+.card-hand.is-out :is(.playing-card, .multiplier-token) {
+  filter: grayscale(0.85);
+}
+.card-hand.is-out :is(.playing-card, .multiplier-token)::after {
+  opacity: 1;
+}
