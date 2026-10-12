@@ -69,7 +69,7 @@ export function AppearanceDialog({
       subtitle={
         hackathonMode
           ? 'Choose the theme that returns when this round ends.'
-          : 'Three ways to play. Pick a theme to apply and save it instantly.'
+          : 'Pick a theme to apply and save it instantly.'
       }
       onClose={onClose}
       wide

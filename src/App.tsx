@@ -13,6 +13,8 @@ import {
   Headphones,
   LoaderCircle,
   LockKeyhole,
+  Maximize2,
+  Minimize2,
   Palette,
   Plus,
   Search,
@@ -54,6 +56,7 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [appearanceError, setAppearanceError] = useState('');
   const [roomFilter, setRoomFilter] = useState('all');
+  const [focusMode, setFocusMode] = useState(false);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('play');
   const inviteHandled = useRef(false);
@@ -78,6 +81,26 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [room?.code, room?.round, room?.phase, tab]);
+  useEffect(() => {
+    setFocusMode(false);
+    if (document.fullscreenElement === document.documentElement)
+      void document.exitFullscreen().catch(() => {});
+  }, [room?.code, tab]);
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setFocusMode(false);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+  useEffect(() => {
+    if (!focusMode || modal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') toggleFocusMode();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [focusMode, modal]);
   const notify = (message: string) => setToast(message);
   useEffect(() => {
     if (!toast) return;
@@ -164,6 +187,16 @@ export default function App() {
   function toggleSound() {
     audio.update({ effects: !sound });
   }
+  function toggleFocusMode() {
+    if (focusMode) {
+      setFocusMode(false);
+      if (document.fullscreenElement === document.documentElement)
+        void document.exitFullscreen().catch(() => {});
+    } else {
+      setFocusMode(true);
+      void document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }
   const online = game.connection === 'connected';
   const filteredRooms = game.rooms.filter(
     (r) =>
@@ -173,7 +206,7 @@ export default function App() {
   );
   return (
     <div
-      className={`app appearance-${hackathonMode ? 'hackathon' : appearance} theme-${hackathonMode ? 'hackathon' : (game.profile?.theme ?? 'classic')}`}
+      className={`app appearance-${hackathonMode ? 'hackathon' : appearance} theme-${hackathonMode ? 'hackathon' : (game.profile?.theme ?? 'classic')} ${focusMode && room && tab === 'play' ? 'focus-mode' : ''}`}
     >
       <aside className="rail">
         <a
@@ -324,6 +357,16 @@ export default function App() {
                   <span className="live-label">
                     <i /> Live table
                   </span>
+                  <button
+                    type="button"
+                    className="text-button focus-toggle"
+                    onClick={toggleFocusMode}
+                    aria-pressed={focusMode}
+                    title={focusMode ? 'Exit full screen' : 'Focus table in full screen'}
+                  >
+                    {focusMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    {focusMode ? 'Exit full screen' : 'Full screen'}
+                  </button>
                   <button className="text-button" onClick={() => setModal('rules')}>
                     <BookOpen size={15} /> Rules
                   </button>

@@ -62,6 +62,26 @@
   --display-weight: 800;
   --shadow: 5px 5px 0 #343326;
 }
+:root[data-appearance='glow'] {
+  color-scheme: dark;
+  --paper: #170d28;
+  --surface: #28183d;
+  --raised: #3c2855;
+  --ink: #fff2ff;
+  --muted: #d2b7df;
+  --line: #684577;
+  --orange: #ff9de5;
+  --on-accent: #341237;
+  --accent-soft: #502957;
+  --hot: #ffb0e6;
+  --danger: #ffb5c6;
+  --danger-soft: #5a2948;
+  --success: #ceffa9;
+  --radius: 18px;
+  --display: 'Space Grotesk Variable', sans-serif;
+  --display-weight: 700;
+  --shadow: 0 16px 48px #10051c88;
+}
 body {
   background: var(--paper);
   color: var(--ink);
@@ -2538,5 +2558,156 @@ body {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Violet Glow keeps the cards readable against a luminous, glassy room. */
+.app.appearance-glow {
+  background:
+    radial-gradient(circle at 78% 8%, #9c3b9f55, transparent 34%),
+    radial-gradient(circle at 4% 65%, #6144c155, transparent 40%), var(--paper);
+}
+.appearance-glow .topbar {
+  background: #1c102dd9;
+  border-bottom: 1px solid #a569b255;
+  backdrop-filter: blur(18px);
+}
+.appearance-glow .wordmark {
+  color: #ffd0f2;
+  text-shadow: 0 0 18px #ed7eea88;
+}
+.app.appearance-glow .table-center {
+  background:
+    radial-gradient(circle at 50% -12%, #a659c45c, transparent 42%),
+    linear-gradient(145deg, #38204f, #241638 70%);
+  border-color: #b575c688;
+  box-shadow:
+    inset 0 1px 0 #ffd5f766,
+    0 20px 65px #10051c99,
+    0 0 48px #d366d52b;
+}
+.app.appearance-glow :is(.scoreboard, .activity-panel, .invite-panel, .room-card) {
+  background: linear-gradient(145deg, #42244eeb, #241637f2 70%);
+  border-color: #a76aba88;
+  box-shadow:
+    inset 0 1px 0 #ffe4fa3d,
+    0 12px 34px #13071f70;
+}
+.app.appearance-glow :is(.turn-banner.your-turn, .active-effect-hint) {
+  background: linear-gradient(120deg, #653376, #52275f 55%, #8e3b7f);
+  border-color: #f2a2e1;
+  box-shadow: 0 0 26px #e871d54d;
+}
+.app.appearance-glow .button.primary {
+  background: linear-gradient(125deg, #ffd0f4, #ff92dd 50%, #b89aff);
+  border-color: #ffd6f5;
+  color: var(--on-accent);
+  box-shadow:
+    inset 0 1px 0 #fff8,
+    0 4px 0 #914b9c,
+    0 8px 30px #eb76d066;
+}
+.app.appearance-glow .button.primary:hover:not(:disabled) {
+  background: linear-gradient(125deg, #ffe1f8, #fface8 50%, #c5a9ff);
+}
+.appearance-glow .hero h1 > span,
+.appearance-glow .round-result h2 {
+  color: #ffb5ea;
+  text-shadow: 0 0 26px #e875dd77;
+}
+.glow .appearance-preview {
+  background: radial-gradient(circle at 70% 15%, #aa50c5, #44215e 55%, #251435);
+  border: 1px solid #d885eb;
+  box-shadow:
+    inset 0 1px 0 #fff5,
+    0 0 12px #b85dd555;
+}
+.glow .preview-card {
+  background: linear-gradient(135deg, #fff5ff, #e9b7ee);
+  color: #5c2577;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    0 3px 12px #ed97e999;
+}
+.glow .preview-card:nth-child(2) {
+  background: linear-gradient(135deg, #ffd8f0, #ff85cf);
+}
+.glow .preview-actions i {
+  background: linear-gradient(90deg, #ffd4f4, #fa7ed5);
+  box-shadow: 0 0 8px #fa7ed588;
+}
+.glow .preview-actions i:last-child {
+  background: #75478d;
+}
+
+/* Room focus expands the table while keeping an exit control within reach. */
+.app .focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.app.focus-mode {
+  min-height: 100dvh;
+}
+.app.focus-mode :is(.rail, .topbar, .footer) {
+  display: none;
+}
+.app.focus-mode .app-body {
+  margin-left: 0;
+  min-height: 100dvh;
+}
+.app.focus-mode .main-content.in-room {
+  max-width: none;
+  padding: 16px clamp(16px, 2.4vw, 48px) 32px;
+}
+.app.focus-mode .room-topline {
+  margin-bottom: 14px;
+}
+.app.focus-mode .room-topline > .text-button {
+  display: none;
+}
+.app.focus-mode .room-tools {
+  width: 100%;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.app.focus-mode .focus-toggle {
+  color: var(--orange);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: var(--surface);
+}
+.app.focus-mode .game-heading {
+  margin-bottom: 16px;
+}
+.app.focus-mode .game-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 270px);
+  grid-template-areas: 'table scores' 'table activity';
+  gap: 16px;
+}
+.app.focus-mode .table-center {
+  min-height: min(76dvh, 900px);
+}
+@media (max-width: 900px) {
+  .app.focus-mode .game-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .app.focus-mode .table-center,
+  .app.focus-mode .scoreboard,
+  .app.focus-mode .activity-panel {
+    width: 100%;
+  }
+  .app.focus-mode .table-center {
+    order: 0;
+    min-height: 0;
+  }
+  .app.focus-mode .scoreboard {
+    order: 1;
+  }
+  .app.focus-mode .activity-panel {
+    order: 2;
   }
 }

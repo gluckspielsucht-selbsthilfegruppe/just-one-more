@@ -197,6 +197,16 @@ describe('authoritative turns and special-card chains', () => {
     r = applyAction(r, 'b', { type: 'guess', value: 11 });
     expect(r.turnId).toBe('b');
   });
+  it('gives a chosen opponent three cards in the same Flip Three action', () => {
+    let r = fixture([], [card(0, 'flip3'), card(2), card(4), card(6), card(8)]);
+    r = applyAction(r, 'a', { type: 'draw' });
+    expect(r.prompt).toEqual({ kind: 'target', actorId: 'a', effect: 'flip3' });
+    r = applyAction(r, 'a', { type: 'target', targetId: 'c' });
+    expect(r.players[2].hand.map((held) => held.value)).toEqual([2, 4, 6]);
+    expect(r.players[0].hand).toHaveLength(0);
+    expect(r.deck[0].value).toBe(8);
+    expect(r.prompt).toBeNull();
+  });
   it('ten unfrozen cards ends the whole round and cancels the remaining forced draw and queued action', () => {
     let r = fixture(
       [0, 1, 2, 3, 4, 5, 6, 8, 9],

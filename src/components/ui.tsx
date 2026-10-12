@@ -146,7 +146,7 @@ export function PlayingCard({
               ? 'Prediction'
               : card.kind === 'hackathon'
                 ? 'AI Hackathon — reverses the round rules'
-                : 'Flip Three';
+                : 'Flip Three — choose any active player for three immediate draws';
   const description = `${name}${card.frozen ? ' — frozen, scores nothing but still counts when checking repeats' : card.disabled ? ' — disabled' : ''}`;
   const color =
     card.kind === 'number'
