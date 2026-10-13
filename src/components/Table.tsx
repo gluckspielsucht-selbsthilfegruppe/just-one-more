@@ -277,6 +277,7 @@ export function Table({
   onRules,
   onSpin,
   playSound,
+  western = false,
 }: {
   room: PublicRoom;
   profile: Profile;
@@ -285,6 +286,7 @@ export function Table({
   onRules: () => void;
   onSpin: () => Promise<void>;
   playSound: (cue: SoundCue) => void;
+  western?: boolean;
 }) {
   const me = room.players.find((p) => p.id === profile.id)!;
   const score = scoreHand(me, room);
@@ -940,7 +942,7 @@ export function Table({
         />
       )}
       {moment && momentPlayer && (
-        <RoundMoment key={moment.id} event={moment} name={momentPlayer.name} />
+        <RoundMoment key={moment.id} event={moment} name={momentPlayer.name} western={western} />
       )}
     </>
   );

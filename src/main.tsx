@@ -5,12 +5,14 @@ import '@fontsource-variable/space-grotesk';
 import '@fontsource/barlow-condensed/700.css';
 import '@fontsource/barlow-condensed/800.css';
 import '@fontsource/dm-serif-display/400.css';
+import '@fontsource/rye/400.css';
 import './styles.css';
 import './themes.css';
 import './hands.css';
 import './motion.css';
 import './card-themes.css';
 import './hackathon-theme.css';
+import './western-theme.css';
 import App from './App';
 import { readCachedAppearance } from './appearance';
 

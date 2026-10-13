@@ -1,0 +1,1172 @@
+/* High Noon: a dusty frontier saloon under a burning desert sunset. */
+:root[data-appearance='western'] {
+  color-scheme: dark;
+  --paper: #22140c;
+  --surface: #33200f;
+  --raised: #4a2f19;
+  --ink: #f6e6c4;
+  --muted: #d0b48e;
+  --line: #6e4b2b;
+  --orange: #f0a83a;
+  --on-accent: #2a1606;
+  --accent-soft: #4b3117;
+  --hot: #ea7444;
+  --danger: #ffa587;
+  --danger-soft: #4d2318;
+  --success: #cfdc84;
+  --radius: 6px;
+  --display: 'Rye', Georgia, serif;
+  --display-weight: 400;
+  --shadow: 0 14px 36px #0d060299;
+  --western-crosshair:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23140a04' stroke-width='4'%3E%3Ccircle cx='16' cy='16' r='9'/%3E%3Cpath d='M16 2v8M16 22v8M2 16h8M22 16h8'/%3E%3C/g%3E%3Cg fill='none' stroke='%23f7c86a' stroke-width='2'%3E%3Ccircle cx='16' cy='16' r='9'/%3E%3Cpath d='M16 2v8M16 22v8M2 16h8M22 16h8'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='2' fill='%23e0442a'/%3E%3C/svg%3E")
+      16 16,
+    crosshair;
+}
+
+/* Scenery sits behind the page, so the app itself lets the sky through. */
+.app.appearance-western {
+  background: transparent;
+}
+.appearance-western .app-body {
+  position: relative;
+  z-index: 1;
+}
+.western-scenery {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 120%, #0000 30%, #0a050299 100%),
+    linear-gradient(
+      180deg,
+      #160b07 0%,
+      #22110a 34%,
+      #3c1a0e 58%,
+      #6b2d13 74%,
+      #a2481b 84%,
+      #d9772c 90%
+    );
+}
+.western-scenery::after {
+  /* A soft, filmic grain over the whole sky. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  background:
+    repeating-radial-gradient(circle at 17% 31%, #fff1 0 1px, #0000 1px 3px),
+    repeating-radial-gradient(circle at 73% 64%, #0002 0 1px, #0000 1px 4px);
+  mix-blend-mode: overlay;
+}
+.western-sun {
+  position: absolute;
+  right: 12%;
+  bottom: 9%;
+  width: min(34vw, 420px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #ffe39a, #ffb44c 38%, #f0702a 70%, #c8441c);
+  box-shadow:
+    0 0 80px 20px #ff8a3555,
+    0 0 220px 80px #ff6a2a33;
+  opacity: 0.85;
+  animation: sun-shimmer 7s ease-in-out infinite alternate;
+}
+.western-sun::after {
+  /* Heat-haze bands across the low sun. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(180deg, #0000 0 18px, #8a2d1233 18px 22px);
+  mask: linear-gradient(180deg, #0000 40%, #000 80%);
+}
+.western-mesas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 22vh;
+  min-height: 130px;
+}
+.western-mesas .far {
+  fill: #3a1a0d;
+}
+.western-mesas .near {
+  fill: #160a05;
+}
+.western-mesas .cactus {
+  fill: #0e0603;
+}
+.western-buzzards {
+  position: absolute;
+  top: 12%;
+  left: 14%;
+  width: 120px;
+  fill: none;
+  stroke: #0e0603;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  opacity: 0.75;
+  animation: buzzards-circle 26s linear infinite;
+}
+.western-dust i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: #f3c98c;
+  opacity: 0;
+  filter: blur(0.6px);
+  animation: dust-drift var(--speed) var(--delay) linear infinite;
+}
+.tumbleweed {
+  position: absolute;
+  left: 0;
+  bottom: 3vh;
+  width: 74px;
+  height: 74px;
+  transform: translateX(-140px);
+  animation: tumble-across 24s linear infinite;
+}
+.tumbleweed.second {
+  width: 48px;
+  height: 48px;
+  bottom: 6vh;
+  opacity: 0.8;
+  animation-duration: 33s;
+  animation-delay: -15s;
+}
+.tumbleweed svg {
+  width: 100%;
+  height: 100%;
+  fill: #6b4524aa;
+  stroke: #b98a52;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  animation:
+    tumble-spin 1.1s linear infinite,
+    tumble-bounce 0.55s ease-in-out infinite alternate;
+}
+
+/* Typography: wanted-poster headlines, slab serif sub-heads. */
+.app.appearance-western :is(h3, h4) {
+  font-family: 'DM Serif Display', Georgia, serif;
+  letter-spacing: 0.01em;
+}
+.app.appearance-western h1 {
+  letter-spacing: 0.01em;
+  text-shadow:
+    3px 3px 0 #6b2a10,
+    0 10px 30px #0009;
+}
+.app.appearance-western h1 :is(.round-tag, .round-slash) {
+  text-shadow: none;
+}
+.app.appearance-western .hero h1 {
+  font-size: clamp(46px, 5.4vw, 84px);
+  line-height: 1.08;
+}
+.appearance-western .hero h1 > span,
+.appearance-western .round-result h2 {
+  color: var(--orange);
+}
+.app.appearance-western .eyebrow {
+  color: #f7c86a;
+  letter-spacing: 0.28em;
+}
+.app.appearance-western .eyebrow::before {
+  content: '★ ';
+  color: var(--hot);
+}
+.app.appearance-western .eyebrow > .tiny-line {
+  display: none;
+}
+
+/* A weathered saloon sign for the top bar. */
+.appearance-western .topbar {
+  position: sticky;
+  background:
+    repeating-linear-gradient(180deg, #0000 0 27px, #120803 27px 28px),
+    repeating-linear-gradient(90deg, #ffffff06 0 2px, #0000 2px 7px),
+    linear-gradient(180deg, #5a3519, #3c2210);
+  border-bottom: 3px solid #120803;
+  box-shadow:
+    inset 0 -2px 0 #a0743f66,
+    0 10px 30px #0008;
+}
+.appearance-western .wordmark {
+  color: #f7c86a;
+  text-shadow:
+    2px 2px 0 #5a1f0a,
+    0 0 18px #f0a83a55;
+}
+.appearance-western .wordmark::before {
+  content: '★ ';
+  color: var(--hot);
+}
+
+/* Brass, leather and wanted-poster buttons, with a sharpshooter’s sight. */
+.app.appearance-western
+  :is(
+    .button,
+    .rail-button,
+    .icon-button,
+    .text-button,
+    .appearance-choice,
+    .option,
+    .mode-option,
+    .theme-option,
+    select
+  ):not(:disabled) {
+  cursor: var(--western-crosshair);
+}
+.app.appearance-western .button.primary {
+  background: linear-gradient(180deg, #ffd780, #ecab42 48%, #c47a20);
+  border: 1px solid #ffe2a3;
+  color: #2a1606;
+  font-family: 'Rye', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 #ffe9b8;
+  box-shadow:
+    inset 0 1px 0 #fff6,
+    inset 0 -3px 0 #9a5a15,
+    0 4px 0 #5a300c,
+    0 10px 24px #0008;
+}
+.app.appearance-western .button.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe29a, #f4b955 48%, #d0862a);
+  box-shadow:
+    inset 0 1px 0 #fff6,
+    inset 0 -3px 0 #9a5a15,
+    0 5px 0 #5a300c,
+    0 0 26px #f0a83a77;
+}
+.app.appearance-western .button.secondary {
+  background:
+    repeating-linear-gradient(45deg, #0000 0 2px, #00000014 2px 4px),
+    linear-gradient(180deg, #5d3a1f, #452914);
+  border-color: #8a5f33;
+  color: var(--ink);
+}
+.app.appearance-western .button.secondary:not(:focus-visible) {
+  outline: 1px dashed #d8b07a66;
+  outline-offset: -6px;
+}
+
+/* The saloon table: oak planks, brass inlay and a leather mat for your hand. */
+.app.appearance-western .table-center {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% -10%, #f0a83a26, transparent 55%),
+    repeating-linear-gradient(90deg, #0000 0 138px, #120803aa 138px 140px),
+    repeating-linear-gradient(90deg, #ffffff05 0 2px, #0000 2px 9px),
+    repeating-linear-gradient(0deg, #00000010 0 1px, #0000 1px 5px),
+    linear-gradient(180deg, #4d2e17, #3a2112);
+  border: 2px solid #120803;
+  box-shadow:
+    inset 0 0 0 6px #2a170b,
+    inset 0 0 0 7px #b8864a99,
+    inset 0 0 70px #000a,
+    0 22px 55px #000a;
+}
+.app.appearance-western .table-center::before {
+  /* Brass nail heads in each corner. */
+  content: '';
+  position: absolute;
+  inset: 14px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0 0, #f7d48a 0 3px, #6b4320 4px, #0000 5px),
+    radial-gradient(circle at 100% 0, #f7d48a 0 3px, #6b4320 4px, #0000 5px),
+    radial-gradient(circle at 0 100%, #f7d48a 0 3px, #6b4320 4px, #0000 5px),
+    radial-gradient(circle at 100% 100%, #f7d48a 0 3px, #6b4320 4px, #0000 5px);
+}
+.app.appearance-western .your-hand {
+  margin-top: 8px;
+  padding: 16px 16px 10px;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 50% 0, #ffffff0c, transparent 60%),
+    repeating-linear-gradient(135deg, #0000 0 3px, #0000000f 3px 5px), #2b190d;
+  outline: 1px dashed #c9a06a55;
+  outline-offset: -7px;
+  box-shadow:
+    inset 0 2px 14px #000a,
+    0 1px 0 #a0743f44;
+}
+.app.appearance-western .hand-cards .playing-card {
+  animation-name: card-slide-west;
+}
+.app.appearance-western :is(.scoreboard, .activity-panel, .invite-panel, .room-card) {
+  background:
+    linear-gradient(180deg, #ffffff08, transparent 40%),
+    repeating-linear-gradient(45deg, #0000 0 2px, #00000012 2px 4px), #3a2213;
+  border: 1px solid #120803;
+  box-shadow:
+    inset 0 0 0 1px #8a5f3355,
+    0 12px 30px #0009;
+}
+.app.appearance-western :is(.scoreboard, .activity-panel, .room-card):not(:focus-visible) {
+  outline: 1px dashed #c9a06a44;
+  outline-offset: -6px;
+}
+.app.appearance-western .standing.current {
+  border-color: var(--orange);
+  box-shadow: 0 0 18px #f0a83a44;
+}
+
+/* Every opponent hangs on the board as a wanted poster. */
+.app.appearance-western .opponent {
+  --ink: #3a2212;
+  --muted: #6e4a2a;
+  --line: #a98457;
+  --surface: #e7cf9d;
+  --raised: #dcc08b;
+  --accent-soft: #f0d7a0;
+  --orange: #9a5512;
+  --danger: #a3261a;
+  --danger-soft: #f1c7b0;
+  --success: #3f5a1a;
+  position: relative;
+  padding-top: 34px;
+  color: var(--ink);
+  background: radial-gradient(ellipse at 50% 45%, #f5e5c0 45%, #e2c48c 78%, #b07f45 100%), #e9d3a4;
+  border: 1px solid #5a3519;
+  border-radius: 2px;
+  box-shadow:
+    0 10px 22px #000a,
+    inset 0 0 26px #8a5a2a66;
+  transform: rotate(-0.8deg);
+}
+.app.appearance-western .opponent:nth-child(even) {
+  transform: rotate(0.9deg);
+}
+.app.appearance-western .opponent::before {
+  content: 'WANTED';
+  position: absolute;
+  top: 7px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Rye', Georgia, serif;
+  font-size: 17px;
+  letter-spacing: 0.22em;
+  color: #4a2a14;
+  background: radial-gradient(circle at 50% -6px, #8a8f96 0 4px, #2a1606 5px, #0000 6px);
+}
+.app.appearance-western .opponent.current {
+  --accent-soft: #f7dfa5;
+  background: radial-gradient(ellipse at 50% 45%, #fff1cc 45%, #f0cf8a 78%, #c48a3e 100%), #f3dcaa;
+  border-color: var(--orange);
+  box-shadow:
+    0 0 0 2px #f0a83a,
+    0 0 28px #f0a83a88,
+    inset 0 0 26px #8a5a2a55;
+}
+.app.appearance-western .opponent.current::before {
+  content: '★ WANTED ★';
+}
+.app.appearance-western .opponent.busted {
+  filter: sepia(0.6) brightness(0.8);
+}
+.app.appearance-western :is(.hand-eliminated, .opponent-eliminated) {
+  border: 3px double #a3261a;
+  color: #b3281b;
+  background: #f3e2bccc;
+  font-family: 'Rye', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  mix-blend-mode: normal;
+}
+
+/* Your turn: a revolver cylinder clicks round, chamber by chamber. */
+.app.appearance-western .turn-banner.your-turn {
+  background:
+    repeating-linear-gradient(90deg, #0000 0 2px, #00000010 2px 6px),
+    linear-gradient(110deg, #6b2a10, #8c3a16 55%, #6b2a10);
+  border-color: #f0a83a;
+  color: #fff3d8;
+  box-shadow:
+    inset 0 0 0 1px #ffd78055,
+    0 0 26px #ea744455;
+}
+.app.appearance-western .your-turn .turn-orb {
+  color: transparent;
+  border: 2px solid #2a1606;
+  background:
+    radial-gradient(circle at 50% 50%, #3b3f45 0 3px, #0000 3.5px),
+    radial-gradient(circle at 50% 20%, #140a04 0 3.4px, #0000 4px),
+    radial-gradient(circle at 76% 35%, #140a04 0 3.4px, #0000 4px),
+    radial-gradient(circle at 76% 65%, #140a04 0 3.4px, #0000 4px),
+    radial-gradient(circle at 50% 80%, #140a04 0 3.4px, #0000 4px),
+    radial-gradient(circle at 24% 65%, #140a04 0 3.4px, #0000 4px),
+    radial-gradient(circle at 24% 35%, #140a04 0 3.4px, #0000 4px),
+    radial-gradient(circle at 35% 30%, #f1f2f4, #a3a8b0 45%, #5a5f68);
+  box-shadow: 0 0 0 2px #f0a83a88;
+  animation: cylinder-click 1.2s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+}
+.app.appearance-western .your-turn .turn-orb svg {
+  opacity: 0;
+}
+
+/* Seats that bust get shot full of holes; seats that hit get a sheriff’s shine. */
+.app.appearance-western :is(.your-hand, .opponent).moment-bust::after,
+.app.appearance-western .standing.moment-bust::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 24% 38%, #080402 0 5px, #3a2414 6px, #f7d6a088 8px, #0000 11px),
+    radial-gradient(circle at 71% 28%, #080402 0 5px, #3a2414 6px, #f7d6a088 8px, #0000 11px),
+    radial-gradient(circle at 56% 72%, #080402 0 5px, #3a2414 6px, #f7d6a088 8px, #0000 11px);
+  animation: bullet-holes 1500ms steps(1, end) both;
+}
+.app.appearance-western :is(.your-hand, .opponent, .standing).moment-bust {
+  position: relative;
+  animation: western-seat-hit 900ms ease-out both;
+}
+.app.appearance-western :is(.your-hand, .opponent, .standing).moment-hit {
+  animation: western-seat-gold 1500ms ease-out both;
+}
+
+/* Gold coins and tin stars instead of confetti. */
+.app.appearance-western .celebration i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff1b8, #f0b445 45%, #9a5f15);
+  box-shadow: inset 0 0 0 2px #c4852866;
+}
+.app.appearance-western .celebration i:nth-child(3n) {
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  background: linear-gradient(135deg, #f4f5f7, #9ea3ab);
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+.app.appearance-western .bank-lock b {
+  font-family: 'Rye', Georgia, serif;
+  font-weight: 400;
+  border: 2px double var(--orange);
+}
+
+/* Lasso ropes, tin stars and a hanging sign around the hero cards. */
+.appearance-western .orbit {
+  border: 3px dashed #b98a52;
+  opacity: 0.6;
+}
+.appearance-western .art-spark {
+  color: var(--orange);
+  text-shadow: 0 0 18px #f0a83a99;
+}
+.appearance-western .spark-two {
+  color: #d9d4c7;
+}
+.appearance-western .art-dot {
+  background: var(--hot);
+  box-shadow: 0 0 12px var(--hot);
+}
+.appearance-western .hero-card .playing-card {
+  outline-color: #2a170b;
+}
+.appearance-western .hero-sticker {
+  padding: 8px 14px;
+  font-family: 'Rye', Georgia, serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #f7c86a;
+  background:
+    repeating-linear-gradient(90deg, #ffffff06 0 2px, #0000 2px 7px),
+    linear-gradient(180deg, #5a3519, #3c2210);
+  border: 2px solid #120803;
+  box-shadow:
+    inset 0 0 0 1px #a0743f66,
+    0 8px 18px #0009;
+}
+.appearance-western .hero-sticker svg {
+  color: #b98a52;
+}
+
+/* Dialogs become a dark oak case with brass trim. */
+.app.appearance-western .modal {
+  background:
+    repeating-linear-gradient(90deg, #ffffff04 0 2px, #0000 2px 8px),
+    linear-gradient(180deg, #3a2213, #2a170b);
+  border: 2px solid #120803;
+  box-shadow:
+    inset 0 0 0 5px #2a170b,
+    inset 0 0 0 6px #b8864a88,
+    0 30px 80px #000c;
+}
+.app.appearance-western .modal::backdrop {
+  background: #120803c4;
+}
+
+/* Round moments: a gunfight for busts, a gold strike for big wins. */
+.western-moment {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  text-align: center;
+  animation: moment-screen 2300ms both;
+}
+.western-moment.bang {
+  animation:
+    moment-screen 2300ms both,
+    gunfight-shake 900ms 100ms both;
+}
+.western-moment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, #6a210ccc, #120804f2 75%);
+}
+.western-moment.strike::before {
+  background: radial-gradient(circle at center, #f8c962 0%, #8a4413e0 42%, #160a04f2 80%);
+}
+.bang-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(circle at 50% 45%, #fff8d6, #ffcf5acc 18%, #ff7a2a55 38%, #0000 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: muzzle-flash 300ms 120ms 3 ease-out;
+}
+.screen-hole {
+  position: absolute;
+  z-index: 2;
+  left: var(--x);
+  top: var(--y);
+  width: 0;
+  height: 0;
+}
+.screen-hole i {
+  position: absolute;
+  left: -90px;
+  top: -90px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #000 0 9px, #2b1a10 10px, #e9dccb 12px, #fff5 14px, #0000 17px),
+    repeating-conic-gradient(from var(--tilt), #fff8 0 0.8deg, #0000 0.8deg 37deg);
+  mask: radial-gradient(circle, #000 18%, #0006 45%, #0000 70%);
+  transform: scale(0);
+  animation: hole-punch 260ms var(--delay) cubic-bezier(0.2, 1.8, 0.4, 1) both;
+}
+.bang-smoke {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.bang-smoke i {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 260px;
+  height: 260px;
+  margin: -130px 0 0 -130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e8dccb66, #0000 65%);
+  filter: blur(8px);
+  opacity: 0;
+  animation: smoke-curl 1900ms 250ms ease-out both;
+}
+.bang-smoke i:nth-child(2) {
+  left: 30%;
+  animation-delay: 500ms;
+}
+.bang-smoke i:nth-child(3) {
+  left: 70%;
+  animation-delay: 800ms;
+}
+.western-moment-copy {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff3d8;
+  padding: 20px;
+  text-shadow: 0 4px 20px #000a;
+}
+.western-moment-copy strong {
+  font-family: 'Rye', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(54px, 13vw, 168px);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #f6e6c4;
+  text-shadow:
+    4px 4px 0 #7a1f0f,
+    0 0 40px #000c;
+  animation: wanted-stamp 520ms 520ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.western-moment.strike .western-moment-copy strong {
+  color: #ffd780;
+  text-shadow:
+    4px 4px 0 #6b2a10,
+    0 0 50px #ffb44c99;
+  animation-delay: 300ms;
+}
+.western-moment .moment-eyebrow {
+  color: #f7c86a;
+  margin-top: 6px;
+  animation: moment-copy 600ms 400ms both;
+}
+.western-moment .moment-player {
+  margin-top: 8px;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: clamp(16px, 2.4vw, 26px);
+  font-weight: 400;
+  animation: moment-copy 600ms 700ms both;
+}
+.bang-word {
+  position: relative;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  width: clamp(200px, 30vw, 320px);
+  aspect-ratio: 1;
+  margin-bottom: -16px;
+  font-family: 'Rye', Georgia, serif;
+  font-size: clamp(36px, 5.2vw, 62px);
+  color: #2a0d04;
+  text-shadow: 2px 2px 0 #ffe9a8;
+  transform: rotate(-9deg);
+  animation: bang-burst 560ms 120ms cubic-bezier(0.2, 1.9, 0.35, 1) both;
+}
+.bang-word::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle, #fff3a6, #ffc53d 45%, #ff7a1f);
+  clip-path: polygon(
+    50% 0,
+    59% 22%,
+    82% 8%,
+    76% 32%,
+    100% 32%,
+    82% 50%,
+    100% 68%,
+    76% 68%,
+    82% 92%,
+    59% 78%,
+    50% 100%,
+    41% 78%,
+    18% 92%,
+    24% 68%,
+    0 68%,
+    18% 50%,
+    0 32%,
+    24% 32%,
+    18% 8%,
+    41% 22%
+  );
+}
+.strike-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax 0 0 -110vmax;
+  background: repeating-conic-gradient(#ffd78022 0 6deg, #0000 6deg 15deg);
+  mask: radial-gradient(circle, #000 0, #0000 45%);
+  animation: rays-turn 2300ms linear both;
+}
+.sheriff-star {
+  width: clamp(96px, 14vw, 150px);
+  margin-bottom: 10px;
+  filter: drop-shadow(0 8px 0 #6b2a10) drop-shadow(0 0 30px #ffd78099);
+  animation: star-spin-in 900ms cubic-bezier(0.2, 1.3, 0.35, 1) both;
+}
+.sheriff-star svg {
+  display: block;
+  width: 100%;
+  fill: #ffcf5a;
+  stroke: #8a4a12;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.sheriff-star circle {
+  fill: #f0a83a;
+}
+.gold-rain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.gold-rain i {
+  position: absolute;
+  left: var(--x);
+  top: -30px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff4c2, #f0b445 45%, #8a5512);
+  box-shadow:
+    inset 0 0 0 2px #c4852888,
+    0 4px 10px #0006;
+  animation: coin-fall 2100ms var(--delay) cubic-bezier(0.35, 0.1, 0.6, 1) both;
+}
+.gold-rain i:nth-child(4n) {
+  width: 16px;
+  height: 16px;
+}
+
+/* Every button press fires a shot. */
+.gunslinger-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+.gun-shot {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.gun-shot i {
+  position: absolute;
+  border-radius: 50%;
+}
+.shot-flash {
+  left: -34px;
+  top: -34px;
+  width: 68px;
+  height: 68px;
+  background: radial-gradient(circle, #fff 0 12%, #ffe27a 26%, #ff9d2e 44%, #0000 64%);
+  clip-path: polygon(
+    50% 0,
+    58% 36%,
+    90% 12%,
+    66% 46%,
+    100% 50%,
+    66% 56%,
+    90% 88%,
+    58% 66%,
+    50% 100%,
+    42% 66%,
+    10% 88%,
+    34% 56%,
+    0 50%,
+    34% 46%,
+    10% 12%,
+    42% 36%
+  );
+  rotate: var(--tilt);
+  animation: shot-flash 200ms ease-out both;
+}
+.shot-hole {
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  background:
+    radial-gradient(circle, #070302 0 32%, #3b2414 46%, #d9c3a3cc 58%, #0000 70%),
+    repeating-conic-gradient(from var(--tilt), #fff6 0 2deg, #0000 2deg 47deg);
+  box-shadow: 0 1px 2px #0008;
+  animation: shot-hole 1700ms both;
+}
+.shot-smoke {
+  left: -16px;
+  top: -16px;
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle, #efe4d3bb, #0000 70%);
+  filter: blur(2px);
+  animation: shot-smoke 1300ms 60ms ease-out both;
+}
+
+/* The appearance picker preview. */
+.western .appearance-preview {
+  background:
+    linear-gradient(175deg, #0000 72%, #160a05 72.5%),
+    radial-gradient(circle at 78% 78%, #ffcf6b 0 12%, #f0702a 18%, #0000 30%),
+    linear-gradient(180deg, #22110a, #6b2d13 62%, #d9772c);
+  color: #f7c86a;
+  border: 1px solid #120803;
+}
+.western .preview-brand {
+  font-family: 'Rye', Georgia, serif;
+  font-weight: 400;
+}
+.western .preview-brand::before {
+  content: '★ ';
+  color: #ea7444;
+}
+.western .preview-card {
+  font-family: 'Rye', Georgia, serif;
+  font-weight: 400;
+  background: radial-gradient(ellipse, #f5e5c0 50%, #c99a5a);
+  color: #3a2212;
+  border-radius: 2px;
+  transform: rotate(-4deg);
+}
+.western .preview-card:nth-child(2) {
+  transform: rotate(3deg) translateY(-3px);
+}
+.western .preview-actions i {
+  background: linear-gradient(180deg, #ffd780, #c47a20);
+}
+.western .preview-actions i:last-child {
+  background: #5d3a1f;
+}
+
+@keyframes sun-shimmer {
+  from {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+  to {
+    transform: translateY(6px) scale(1.02);
+    filter: brightness(1.08);
+  }
+}
+@keyframes buzzards-circle {
+  from {
+    transform: rotate(0deg) translateX(70px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(70px) rotate(-360deg);
+  }
+}
+@keyframes dust-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15%,
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(28vw, -12vh);
+  }
+}
+@keyframes tumble-across {
+  0% {
+    transform: translateX(-140px);
+  }
+  45%,
+  100% {
+    transform: translateX(calc(100vw + 140px));
+  }
+}
+@keyframes tumble-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes tumble-bounce {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 -16px;
+  }
+}
+@keyframes card-slide-west {
+  from {
+    opacity: 0;
+    transform: translate3d(180px, -6px, 0) rotate(16deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(-10px, 0, 0) rotate(-3deg);
+  }
+  78% {
+    transform: translate3d(3px, 0, 0) rotate(1deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0);
+  }
+}
+@keyframes cylinder-click {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(60deg);
+  }
+}
+@keyframes bullet-holes {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  10% {
+    opacity: 1;
+    clip-path: inset(0 60% 0 0);
+  }
+  30% {
+    clip-path: inset(0 0 40% 0);
+  }
+  50%,
+  85% {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0);
+  }
+}
+@keyframes western-seat-hit {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  8% {
+    transform: translate(-7px, 2px) rotate(-1deg);
+    filter: sepia(1) brightness(1.6);
+  }
+  18% {
+    transform: translate(6px, -3px) rotate(1deg);
+  }
+  30% {
+    transform: translate(-4px, 1px);
+    filter: sepia(0.7) brightness(1.2);
+  }
+  45% {
+    transform: translate(3px, 0);
+  }
+  60% {
+    transform: translate(-1px, 0);
+    filter: sepia(0.4);
+  }
+}
+@keyframes western-seat-gold {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  25%,
+  60% {
+    box-shadow:
+      0 0 0 3px #ffd780,
+      0 0 40px #f0a83aaa;
+  }
+}
+@keyframes gunfight-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  4%,
+  37%,
+  70% {
+    transform: translate(-12px, 6px);
+  }
+  10%,
+  43%,
+  76% {
+    transform: translate(9px, -7px);
+  }
+  18%,
+  51%,
+  84% {
+    transform: translate(-4px, 3px);
+  }
+  26%,
+  59%,
+  92% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes muzzle-flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes hole-punch {
+  from {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+@keyframes smoke-curl {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4);
+  }
+  25% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(1.6);
+  }
+}
+@keyframes bang-burst {
+  0% {
+    transform: rotate(-30deg) scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-4deg) scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-9deg) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes wanted-stamp {
+  from {
+    transform: scale(2.4) rotate(-6deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(-2deg);
+    opacity: 1;
+  }
+}
+@keyframes rays-turn {
+  from {
+    transform: rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: rotate(40deg);
+    opacity: 1;
+  }
+}
+@keyframes star-spin-in {
+  from {
+    transform: translateY(-60vh) rotateY(0deg) scale(0.6);
+  }
+  to {
+    transform: translateY(0) rotateY(720deg) scale(1);
+  }
+}
+@keyframes coin-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotateY(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.9;
+    transform: translate(var(--drift), 110vh) rotateY(1080deg);
+  }
+}
+@keyframes shot-flash {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+@keyframes shot-hole {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  12%,
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes shot-smoke {
+  from {
+    opacity: 0.9;
+    transform: translate(0, 0) scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: translate(10px, -46px) scale(2.2);
+  }
+}
+
+@media (max-width: 850px) {
+  .western-sun {
+    width: 52vw;
+    right: 4%;
+  }
+  .tumbleweed {
+    width: 52px;
+    height: 52px;
+  }
+  .app.appearance-western .opponent::before {
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .western-scenery *,
+  .western-scenery *::before,
+  .western-scenery *::after,
+  .western-moment,
+  .western-moment *,
+  .western-moment::before {
+    animation: none !important;
+  }
+  .tumbleweed,
+  .western-dust,
+  .gold-rain,
+  .bang-smoke,
+  .bang-flash {
+    display: none;
+  }
+  .screen-hole i {
+    transform: none;
+  }
+}

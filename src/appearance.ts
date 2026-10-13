@@ -5,12 +5,14 @@ export const APPEARANCES = [
   { id: 'velvet', name: 'Velvet Club', description: 'Green felt. A little golden-hour luck.' },
   { id: 'pop', name: 'Lucky Pop', description: 'Big color. Bigger personality.' },
   { id: 'glow', name: 'Violet Glow', description: 'Shimmering violet. Electric pink.' },
+  { id: 'western', name: 'High Noon', description: 'Dust, leather and the fastest draw in town.' },
 ] as const;
 
 export function readCachedAppearance(): Profile['appearance'] {
   try {
     const saved = localStorage.getItem('jom-appearance');
-    if (saved === 'neon' || saved === 'velvet' || saved === 'pop' || saved === 'glow') return saved;
+    if (APPEARANCES.some((appearance) => appearance.id === saved))
+      return saved as Profile['appearance'];
   } catch {
     // The server profile remains authoritative when browser storage is unavailable.
   }

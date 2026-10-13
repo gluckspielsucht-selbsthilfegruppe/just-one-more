@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BrainCircuit, Skull, Sparkles } from 'lucide-react';
 import type { GameEvent } from '../../shared/types';
 import { useReducedMotion } from '../motion';
+import { WesternMoment } from './Western';
 
 export function AnimatedNumber({ value, from }: { value: number; from?: number }) {
   const reduced = useReducedMotion();
@@ -52,7 +53,15 @@ export function Celebration() {
   );
 }
 
-export function RoundMoment({ event, name }: { event: GameEvent; name: string }) {
+export function RoundMoment({
+  event,
+  name,
+  western = false,
+}: {
+  event: GameEvent;
+  name: string;
+  western?: boolean;
+}) {
   if (event.moment === 'hackathon')
     return (
       <div className="hackathon-moment" role="status" aria-live="assertive">
@@ -82,6 +91,7 @@ export function RoundMoment({ event, name }: { event: GameEvent; name: string })
         </div>
       </div>
     );
+  if (western) return <WesternMoment event={event} name={name} />;
   const lost = event.moment === 'bust' || event.moment === 'roulette-loss';
   return (
     <div className={`round-moment ${lost ? 'loss' : 'hit'}`} role="status" aria-live="polite">
