@@ -70,6 +70,7 @@ export function useGame() {
           const msg = JSON.parse(event.data);
           if (msg.type === 'state')
             setState({ profile: msg.profile, room: msg.room, rooms: msg.rooms });
+          if (msg.type === 'rooms') setState((previous) => ({ ...previous, rooms: msg.rooms }));
           if (msg.type === 'ack' || msg.type === 'error') {
             const p = pending.current.get(msg.id);
             if (p) {

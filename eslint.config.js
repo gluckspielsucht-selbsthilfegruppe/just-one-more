@@ -48,6 +48,10 @@ export default defineConfig([
     extends: [playwright.configs['flat/recommended']],
   },
   {
+    files: ['tests/load/**/*.js'],
+    languageOptions: { globals: { __ENV: 'readonly' } },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },

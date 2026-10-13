@@ -77,6 +77,7 @@ async function connect(name: string, cookie?: string): Promise<Client> {
   ws.on('message', (raw) => {
     const msg = JSON.parse(raw.toString());
     if (msg.type === 'state') c.state = msg;
+    if (msg.type === 'rooms') c.state = { ...c.state, rooms: msg.rooms };
     if (msg.type === 'ack' || msg.type === 'error') {
       const p = pending.get(msg.id);
       if (p) {

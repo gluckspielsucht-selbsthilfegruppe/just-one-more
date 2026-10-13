@@ -30,6 +30,8 @@ flowchart LR
 | `src/shared/scoring.ts`  | Pure score breakdowns, used by the engine and the UI.                                                |
 | `src/server/app.ts`      | HTTP endpoints, WebSocket handling, validation (Zod), sessions, rate limits, room lifecycle, timers. |
 | `src/server/store.ts`    | Persistence: SQLite (better-sqlite3) with versioned migrations; active rooms cached in memory.       |
+| `src/server/logger.ts`   | pino logger factory (JSON in production, pretty in development).                                     |
+| `src/server/metrics.ts`  | Prometheus text format and the separate metrics listener.                                            |
 | `src/server/serve.ts`    | Shared startup: configuration, listening, LAN URLs, graceful shutdown.                               |
 | `src/server/index.ts`    | Production entry: serves the built client from `dist/client`.                                        |
 | `src/server/dev.ts`      | Development entry: mounts Vite in middleware mode for hot reloading.                                 |
@@ -62,6 +64,16 @@ The game engine runs only on the server. Its state machine resolves physical dra
 Clients receive a public projection that omits the draw pile, discards, and effect queues. They never shuffle, choose random results, or write scores. Each game action includes a state version; a stale action is rejected with a refreshed snapshot. Successful request IDs are deduplicated per player (last 512 in process), and state versions protect game actions after a restart. There is no automatic retry of an uncertain action; the player sees the current state before deciding again.
 
 Room mutations are synchronous in one process. Room shuffles and roulette use Node’s cryptographic random source.
+
+### WebSocket messages
+
+| Server message | Sent to                                                          | Content                                            |
+| -------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| `state`        | Players seated at the changed room (and anyone who just left it) | Own profile, public room, public room list.        |
+| `rooms`        | Connected players without a seat                                 | Public room list, only on change, at most 1/s.     |
+| `ack`, `error` | The sender of a command                                          | Result; an `error` is followed by a fresh `state`. |
+
+The server keeps in-memory indexes of seated players per room and open sockets per user, so finding a player's room and its recipients does not scan all rooms. Opening a second tab or closing one of several tabs changes nothing for the table and is neither saved nor broadcast.
 
 ## Persistence
 

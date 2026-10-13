@@ -24,15 +24,32 @@ describe('server configuration', () => {
   });
 
   it('reads defaults and overrides from the environment', () => {
-    expect(readConfig({})).toMatchObject({ port: 3000, trustProxy: false });
+    expect(readConfig({})).toMatchObject({
+      port: 3000,
+      trustProxy: false,
+      logLevel: 'info',
+      metricsPort: undefined,
+      metricsHost: '127.0.0.1',
+    });
     expect(readConfig({}).databaseFile).toMatch(/data[/\\]just-one-more\.db$/);
     expect(
-      readConfig({ PORT: '8080', DATA_DIR: '/tmp/x', TRUST_PROXY: '1', COOKIE_SECURE: 'true' }),
+      readConfig({
+        PORT: '8080',
+        DATA_DIR: '/tmp/x',
+        TRUST_PROXY: '1',
+        COOKIE_SECURE: 'true',
+        LOG_LEVEL: 'debug',
+        METRICS_PORT: '9100',
+        METRICS_HOST: '0.0.0.0',
+      }),
     ).toEqual({
       port: 8080,
       databaseFile: '/tmp/x/just-one-more.db',
       trustProxy: 1,
       cookieSecure: true,
+      logLevel: 'debug',
+      metricsPort: 9100,
+      metricsHost: '0.0.0.0',
     });
   });
 });

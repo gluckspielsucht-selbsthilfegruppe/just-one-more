@@ -17,7 +17,8 @@
     "test:client": "vitest run --project client",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --max-warnings 28",
-    "test:e2e": "npm run build && playwright test"
+    "test:e2e": "npm run build && playwright test",
+    "test:load": "k6 run tests/load/tables.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,8 @@
   "dependencies": {
     "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
     "proxy-addr": "^2.0.8",
     "ws": "^8.22.0",
     "zod": "^4.6.5"
@@ -67,6 +70,7 @@
     "globals": "^17.13.0",
     "jsdom": "^29.1.1",
     "lucide-react": "^1.56.0",
+    "pino-pretty": "^13.2.0",
     "prettier": "^3.9.9",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -4,12 +4,15 @@ The app is one Node.js process serving HTTP and WebSockets on a single port. It 
 
 ## Configuration
 
-| Variable        | Default  | Purpose                                                                                                                                                                                                                                    |
-| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT`          | `3000`   | HTTP and WebSocket port.                                                                                                                                                                                                                   |
-| `DATA_DIR`      | `./data` | Directory containing the SQLite database `just-one-more.db` (plus its `-wal`/`-shm` files while running).                                                                                                                                  |
-| `TRUST_PROXY`   | (unset)  | Which proxies may supply the client IP and protocol via `X-Forwarded-For`/`X-Forwarded-Proto`. Same values as Express `trust proxy`: a hop count (`1`), or addresses/subnets (`loopback`, `uniquelocal`, `10.0.0.1`). Unset trusts nobody. |
-| `COOKIE_SECURE` | (unset)  | Unset: session cookies are `Secure` when the request is HTTPS (directly or via a trusted proxy). `true`/`false` force the flag.                                                                                                            |
+| Variable        | Default     | Purpose                                                                                                                                                                                                                                    |
+| --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`          | `3000`      | HTTP and WebSocket port.                                                                                                                                                                                                                   |
+| `DATA_DIR`      | `./data`    | Directory containing the SQLite database `just-one-more.db` (plus its `-wal`/`-shm` files while running).                                                                                                                                  |
+| `TRUST_PROXY`   | (unset)     | Which proxies may supply the client IP and protocol via `X-Forwarded-For`/`X-Forwarded-Proto`. Same values as Express `trust proxy`: a hop count (`1`), or addresses/subnets (`loopback`, `uniquelocal`, `10.0.0.1`). Unset trusts nobody. |
+| `COOKIE_SECURE` | (unset)     | Unset: session cookies are `Secure` when the request is HTTPS (directly or via a trusted proxy). `true`/`false` force the flag.                                                                                                            |
+| `LOG_LEVEL`     | `info`      | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, or `silent`. `debug` adds static file requests, WebSocket connects, and rejected commands.                                                                                             |
+| `METRICS_PORT`  | (unset)     | When set, serves Prometheus metrics at `/metrics` on this port, on a separate listener. The public port never exposes them.                                                                                                                |
+| `METRICS_HOST`  | `127.0.0.1` | Address of the metrics listener. In Docker use `0.0.0.0` and do not publish the port publicly (see below).                                                                                                                                 |
 
 Example: `PORT=8080 DATA_DIR=./demo-data npm start`.
 
@@ -19,6 +22,51 @@ Only set `TRUST_PROXY` when clients cannot reach the app except through that pro
 
 - `GET /api/health`: liveness; the process answers.
 - `GET /api/ready`: readiness; `200` when the database answers and its file is writable, `503` otherwise. The Docker image uses this check.
+
+## Logs and metrics
+
+The server writes one JSON object per line to stdout ([pino](https://getpino.io)); `npm run dev` prints them in a readable format instead. Each HTTP response carries an `X-Request-Id` header, and the matching log line has the same `req.id`. API requests are logged at `info`; health checks are not logged. Logs contain pseudonymous user IDs but no cookies, session tokens, passwords, or IP addresses.
+
+With `METRICS_PORT` set, `GET /metrics` returns:
+
+| Metric                                                                              | Type    | Meaning                                                       |
+| ----------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------- |
+| `jom_websocket_connections`                                                         | gauge   | Open WebSocket connections.                                   |
+| `jom_connected_users`                                                               | gauge   | Users with at least one open connection.                      |
+| `jom_rooms{phase}`                                                                  | gauge   | Active rooms per phase.                                       |
+| `jom_commands_total{result}`                                                        | counter | Commands: `ok`, `rejected` (rule/validation), `failed` (bug). |
+| `jom_websocket_messages_total{type}`                                                | counter | Broadcast `state` and `rooms` messages.                       |
+| `jom_http_responses_total{status}`                                                  | counter | HTTP responses by status class (`2xx`, `4xx`, `5xx`, …).      |
+| `process_resident_memory_bytes`, `nodejs_heap_used_bytes`, `process_uptime_seconds` | gauge   | Process health.                                               |
+
+In Docker, set `METRICS_PORT: '9464'` and `METRICS_HOST: '0.0.0.0'` on the app service. Reach it from another container on the same Compose network (for example a Prometheus sidecar at `http://app:9464/metrics`), or publish it to the host's loopback only with `ports: ['127.0.0.1:9464:9464']`.
+
+## Load testing
+
+`tests/load/tables.js` is a [k6](https://k6.io) script (install k6 separately). Each table has four scripted human players: the host creates a public table, the others find it in the room list, join, and mark themselves ready, and everyone plays (draw until three cards, then bank; answer target and prediction prompts) and chats every 10 seconds. Extra lobby clients only watch the room list. Players arrive 20 ms apart.
+
+```sh
+npm run build
+ulimit -n 8192   # macOS defaults to 256 open files, too few for hundreds of sockets
+PORT=3456 TRUST_PROXY=loopback DATA_DIR=$(mktemp -d) LOG_LEVEL=warn METRICS_PORT=9464 npm start
+# in a second terminal (also run `ulimit -n 8192` there)
+npm run test:load -- -e BASE_URL=http://127.0.0.1:3456 -e TABLES=75 -e LOBBY_CLIENTS=25
+```
+
+`TRUST_PROXY=loopback` lets each virtual player send its own `X-Forwarded-For` address; without it, the per-IP rate limits stop the test. Never use that setting for a server that is reachable from outside. Options: `TABLES` (default 10, at most 100 because of the room limit), `LOBBY_CLIENTS` (10), `DURATION_SECONDS` (60), `THINK_MS` (400), `RAMP_MS` (20). Thresholds: p95 command latency below 250 ms, fewer than 10 command errors.
+
+**Baseline** (2026-10-13, Apple M3 Pro, Node 22, production build, 75 tables × 4 players + 25 lobby clients, 60 s):
+
+| Measure                           | Result                                                  |
+| --------------------------------- | ------------------------------------------------------- |
+| Open WebSockets                   | 325                                                     |
+| Commands                          | ~200/s, 13 199 ok, 6 rejected (stale version), 0 failed |
+| Command latency (send \u2192 ack) | median 2 ms, p95 4 ms, max 29 ms                        |
+| Broadcast messages                | ~800 `state`/s, ~23 `rooms`/s                           |
+| Server CPU                        | 15\u201328 % of one core                                |
+| Server memory (RSS)               | ~130 MB                                                 |
+
+The room limit (100) is reached long before CPU or memory. A small VPS with one vCPU and 512 MB\u20131 GB RAM is therefore enough for the current limits; repeat the test on the chosen host (O-02) before raising them.
 
 ## Run with Node.js
 

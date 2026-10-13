@@ -239,7 +239,6 @@ describe('WebSocket error refreshes', () => {
     const a = socket(base, await guest(base, 'Alice'));
     const b = socket(base, await guest(base, 'Bob'));
     await until(() => a.messages.length > 0 && b.messages.length > 0);
-    await until(() => a.messages.length >= 2);
     const seenByB = b.messages.length;
     a.messages.length = 0;
     a.ws.send(JSON.stringify({ id: 'invalid-command', type: 'bogus' }));

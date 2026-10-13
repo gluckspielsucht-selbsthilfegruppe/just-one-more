@@ -1,4 +1,6 @@
 import { createServer } from 'vite';
+import { readConfig } from './config';
+import { createLogger } from './logger';
 import { serve } from './serve';
 
 await serve(
@@ -10,5 +12,8 @@ await serve(
     application.app.use(vite.middlewares);
     return () => vite.close();
   },
-  { contentSecurityPolicy: false },
+  {
+    contentSecurityPolicy: false,
+    logger: createLogger({ level: readConfig().logLevel, pretty: true }),
+  },
 );

@@ -3,6 +3,7 @@ import { constants, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { Profile, Room } from '../shared/types';
+import { silentLogger, type Logger } from './logger';
 
 export interface User extends Profile {
   password?: string;
@@ -121,7 +122,7 @@ function openChecked(file: string) {
     throw error;
   }
 }
-function open(file?: string) {
+function open(logger: Logger, file?: string) {
   if (!file) return new Database(':memory:');
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
   try {
@@ -131,7 +132,10 @@ function open(file?: string) {
     const backup = `${file}.corrupt-${Date.now()}`;
     renameSync(file, backup);
     for (const suffix of ['-wal', '-shm']) rmSync(`${file}${suffix}`, { force: true });
-    console.error(`Saved data is unreadable; moved it to ${backup} and started empty.`, error);
+    logger.error(
+      { err: error, backup },
+      'Saved data is unreadable; moved it aside and started empty',
+    );
     return new Database(file);
   }
 }
@@ -149,8 +153,11 @@ export class Store {
   private readonly cache = new Map<string, Room>();
   private readonly statements;
 
-  constructor(private readonly file?: string) {
-    this.db = open(file);
+  constructor(
+    private readonly file?: string,
+    logger: Logger = silentLogger,
+  ) {
+    this.db = open(logger, file);
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('synchronous = NORMAL');
     this.db.pragma('foreign_keys = ON');
