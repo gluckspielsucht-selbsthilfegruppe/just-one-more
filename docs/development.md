@@ -28,6 +28,7 @@ To test with several players locally, use separate browser profiles or private w
 | `npm run test:integration` | Real HTTP + WebSocket server tests, including restart persistence.                             |
 | `npm run test:coverage`    | All Vitest projects with coverage thresholds; HTML report in `coverage/`.                      |
 | `npm run test:e2e`         | Build, then run Playwright end-to-end tests in Chromium, Firefox, WebKit, and mobile profiles. |
+| `npm run test:load`        | k6 load test against a running server (see [deployment.md](deployment.md#load-testing)).       |
 | `npm run check`            | Type-check, lint, and run all Vitest tests.                                                    |
 | `npm run format`           | Format the repository with Prettier (`npm run format:check` to verify).                        |
 
@@ -47,6 +48,7 @@ tests/
   client/            Client tests in jsdom
   integration/       Real server on a random port with a temporary data directory
   e2e/               Playwright specs and the e2e server entry (server.ts)
+  load/              k6 load test (tables.js)
   support/           Shared test helpers (seeded random generator)
 public/              Static files copied verbatim into the client build
 docs/                Architecture, deployment, rules, technical plan
