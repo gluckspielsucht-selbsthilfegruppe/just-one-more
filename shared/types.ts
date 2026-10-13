@@ -122,7 +122,7 @@ export interface Profile {
   name: string;
   color: string;
   theme: CardDesign;
-  appearance: 'neon' | 'velvet' | 'pop' | 'glow';
+  appearance: 'neon' | 'velvet' | 'pop' | 'glow' | 'western';
   account: boolean;
   stats: Stats;
 }

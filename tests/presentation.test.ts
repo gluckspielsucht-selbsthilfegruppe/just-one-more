@@ -100,7 +100,7 @@ describe('audio preferences and lifecycle', () => {
     vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ music: true, volume: 900 }) });
     expect(readAudioSettings().volume).toBe(1);
   });
-  it.each(['theme', 'neon', 'velvet', 'pop'] as const)(
+  it.each(['theme', 'neon', 'velvet', 'pop', 'western'] as const)(
     'restores the saved %s music style',
     (style) => {
       const saved = { music: true, effects: true, volume: 0.6, style };
@@ -122,11 +122,11 @@ describe('audio preferences and lifecycle', () => {
       });
     },
   );
-  it.each(['neon', 'velvet', 'pop'] as const)(
+  it.each(['neon', 'velvet', 'pop', 'western'] as const)(
     'follows the %s theme only when requested',
     (appearance) => {
       expect(resolveSoundtrack('theme', appearance)).toBe(appearance);
-      for (const style of ['neon', 'velvet', 'pop'] as const)
+      for (const style of ['neon', 'velvet', 'pop', 'western'] as const)
         expect(resolveSoundtrack(style, appearance)).toBe(style);
     },
   );
@@ -246,6 +246,27 @@ describe('audio preferences and lifecycle', () => {
     expect(vi.getTimerCount()).toBe(0);
     await audio.setVisible(true);
     expect(nodes.length).toBeGreaterThan(pausedCount);
+    expect(vi.getTimerCount()).toBe(1);
+
+    // The western score shares the scheduler and stops cleanly when another style takes over.
+    const beforeWestern = nodes.length;
+    audio.configure({ ...settings, style: 'western' }, 'neon');
+    const westernNotes = nodes.slice(beforeWestern);
+    expect(westernNotes.length).toBeGreaterThan(0);
+    expect(vi.getTimerCount()).toBe(1);
+    audio.configure({ ...settings, style: 'neon' }, 'neon');
+    expect(westernNotes.every((node) => node.stop.mock.calls.length >= 2)).toBe(true);
+
+    // High Noon swaps the tonal bust cue for a noise-driven gunshot.
+    audio.configure({ ...settings, style: 'neon', effects: true }, 'neon');
+    const beforeTone = nodes.length;
+    audio.play('bust');
+    expect(nodes.slice(beforeTone).every((node) => node instanceof Oscillator)).toBe(true);
+    audio.configure({ ...settings, style: 'neon', effects: true }, 'western');
+    const beforeShot = nodes.length;
+    audio.play('bust');
+    const gunshot = nodes.slice(beforeShot);
+    expect(gunshot.some((node) => !(node instanceof Oscillator))).toBe(true);
     expect(vi.getTimerCount()).toBe(1);
     audio.dispose();
     expect(vi.getTimerCount()).toBe(0);
