@@ -698,6 +698,7 @@ export function Table({
                 </span>
                 <div
                   className={`count-dots ${milestoneCue !== null ? 'milestone-unlocked' : ''}`}
+                  role="img"
                   aria-label={`${score.count} of 10 unfrozen numbers`}
                 >
                   {Array.from({ length: 10 }, (_, i) => (

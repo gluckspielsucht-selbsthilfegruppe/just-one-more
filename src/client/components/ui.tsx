@@ -32,6 +32,7 @@ export function Avatar({
   return (
     <span
       className={`avatar ${player.color} ${size}`}
+      role="img"
       aria-label={`${player.name}${player.bot ? ', bot' : ''}`}
     >
       <span>
@@ -203,7 +204,7 @@ export function PlayingCard({
 }
 export function HeroCards() {
   return (
-    <div className="hero-art" aria-label="A fan of colorful playing cards">
+    <div className="hero-art" role="img" aria-label="A fan of colorful playing cards">
       <div className="orbit orbit-one" />
       <div className="orbit orbit-two" />
       <span className="art-spark spark-one">✳</span>

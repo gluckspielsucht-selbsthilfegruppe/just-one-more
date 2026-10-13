@@ -27,7 +27,8 @@ export function AnimatedNumber({ value, from }: { value: number; from?: number }
     return () => cancelAnimationFrame(frame);
   }, [value, reduced]);
   return (
-    <span className="animated-number" aria-label={String(value)}>
+    <span className="animated-number">
+      <span className="visually-hidden">{value}</span>
       <span aria-hidden="true">{reduced ? value : display}</span>
     </span>
   );

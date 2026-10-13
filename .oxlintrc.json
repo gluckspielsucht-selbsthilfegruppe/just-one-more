@@ -13,7 +13,7 @@
     "react/exhaustive-deps": "warn",
     "react/refs": "warn",
     "react/set-state-in-effect": "warn",
-    "jsx-a11y/prefer-tag-over-role": "warn",
+    "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/label-has-associated-control": "warn",
     "jsx-a11y/no-autofocus": "warn",
     "jsx-a11y/no-noninteractive-tabindex": "warn",

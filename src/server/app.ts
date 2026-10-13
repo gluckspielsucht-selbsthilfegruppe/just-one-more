@@ -67,15 +67,15 @@ function cookieToken(req: { headers: { cookie?: string } }) {
     ?.slice(12);
 }
 
-export function createApplication(
-  options: {
-    dataFile?: string;
-    botDelay?: number;
-    disconnectDelay?: number;
-    // Tests inject a seeded generator; production always uses the crypto source.
-    random?: Random;
-  } = {},
-) {
+export interface ApplicationOptions {
+  dataFile?: string;
+  botDelay?: number;
+  disconnectDelay?: number;
+  // Tests inject a seeded generator; production always uses the crypto source.
+  random?: Random;
+}
+
+export function createApplication(options: ApplicationOptions = {}) {
   const random = options.random ?? secureRandom;
   const store = new Store(options.dataFile);
   const app = express();

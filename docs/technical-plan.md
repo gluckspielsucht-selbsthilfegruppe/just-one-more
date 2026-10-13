@@ -33,6 +33,14 @@ The architecture stays a **single Node process** that owns its SQLite file and s
 
 Strengths to preserve: server-authoritative engine with crypto randomness, Zod validation on every external input, scrypt passwords, hashed session tokens, SameSite=Strict cookies, origin checks, versioned actions with request de-duplication, atomic writes, non-root Docker image with health check.
 
+## Progress
+
+| Phase | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ----- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | **Done** | C-01 … C-10 implemented. Additions: `docs/features.md` keeps the detailed feature list from the old README; `src/server/serve.ts` holds shared startup used by `dev.ts`, `index.ts`, and the e2e server; client-only packages (React, icons, fonts) moved to `devDependencies`; Node 24 LTS.                                                                                                                                                   |
+| 1     | **Done** | T-01 … T-09 implemented. Deviations: tests are grouped as `unit`, `client` (jsdom: components and browser helpers), `integration`, `e2e`; **oxlint** replaces ESLint (T-03) because `typescript-eslint` does not support TypeScript 7 yet. Existing hook/a11y findings are warnings with a ceiling (M-07). The axe scan found and fixed invalid `aria-label` uses; known color-contrast and scrollable-region findings are allowlisted (M-08). |
+| 2–7   | Open     | Next: Phase 2 hardening.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+
 ## 3. Guiding principles
 
 1. **Safety net first.** Tests and CI land before any behavior-changing refactoring or the SQLite migration. The purely mechanical restructure (Phase 0) comes first so new tests are written in their final location; it is guarded by the existing 86 tests, `tsc`, the production build, and a Docker build.
@@ -93,7 +101,7 @@ Phases 0–3 are required before permanent hosting for friends. Phase 6 is requi
 
 | Mode        | Command                                                                                          | Notes                                                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Development | `tsx watch src/server/index.ts` (Vite runs inside it in middleware mode, as today)               | `tsx` becomes a **devDependency**. One port, HMR for the client, restart on server edits.    |
+| Development | `tsx watch src/server/dev.ts` (Vite runs inside it in middleware mode, as before)                | `tsx` becomes a **devDependency**. One port, HMR for the client, restart on server edits.    |
 | Build       | `vite build` (client → `dist/client`) + `vite build --ssr src/server/index.ts` (→ `dist/server`) | One toolchain for both bundles; npm dependencies stay external and come from `node_modules`. |
 | Production  | `node dist/server/index.js`                                                                      | Plain Node, no TypeScript loader, faster start, smaller image.                               |
 
@@ -114,17 +122,17 @@ Why not Node's built-in TypeScript support instead of `tsx`: it requires `.ts` e
 
 ### Phase 1 — Test and CI foundation
 
-| ID   | Task                                                                                                                                                                                                                     | Acceptance criteria                                                                                 |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| T-01 | Restructure tests into `tests/unit`, `tests/integration`, `tests/e2e`; configure Vitest projects (`node` env for server/shared, `jsdom` env for React).                                                                  | `npm run test:unit` and `npm run test:integration` run independently; existing 86 tests still pass. |
-| T-02 | Add `@vitest/coverage-v8` with thresholds (start at current coverage, ratchet upward; target ≥ 90 % for `src/shared/`, ≥ 80 % for `src/server/`).                                                                        | `npm run test:coverage` fails below thresholds; report uploaded as a CI artifact.                   |
-| T-03 | Add ESLint (flat config) with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`.                                                                                                                | `npm run lint` passes; added to `npm run check`.                                                    |
-| T-04 | Allow injecting `random` into `createApplication` (defaults to crypto random) so integration and e2e tests can be deterministic.                                                                                         | Production entry unchanged in behavior; tests can pass a seeded PRNG.                               |
-| T-05 | Add React component tests with `@testing-library/react` for `HandCards`, `Roulette`, `Rules`, `Appearance`, `AudioControls`, dialogs in `ui.tsx`, and pure client helpers (`roulette.ts`, `motion.ts`, `appearance.ts`). | Each component has render + interaction tests; helpers have unit tests.                             |
-| T-06 | Set up Playwright (`@playwright/test`) with a dedicated test server entry (`tests/e2e/server.ts`) serving the **production build** with seeded randomness, short bot delay, and a temp data dir.                         | `npm run test:e2e` builds, starts, and tests the app headlessly on Chromium, Firefox, and WebKit.   |
-| T-07 | Write the critical-journey e2e suite (see §5.2) including an accessibility scan with `@axe-core/playwright`.                                                                                                             | Suite runs < 5 min in CI; no serious/critical axe violations.                                       |
-| T-08 | Add GitHub Actions workflow (see §6).                                                                                                                                                                                    | Required status checks enabled on `main` via branch protection.                                     |
-| T-09 | Add Renovate or Dependabot with grouped weekly updates.                                                                                                                                                                  | Update PRs open automatically and run the full pipeline.                                            |
+| ID   | Task                                                                                                                                                                                                                     | Acceptance criteria                                                                                      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| T-01 | Restructure tests into `tests/unit`, `tests/client`, `tests/integration`, `tests/e2e`; configure Vitest projects (`node` env for server/shared, `jsdom` env for React).                                                  | `npm run test:unit`, `test:client`, and `test:integration` run independently; existing tests still pass. |
+| T-02 | Add `@vitest/coverage-v8` with thresholds (start at current coverage, ratchet upward; target ≥ 90 % for `src/shared/`, ≥ 80 % for `src/server/`).                                                                        | `npm run test:coverage` fails below thresholds; report uploaded as a CI artifact.                        |
+| T-03 | Add a linter covering TypeScript, React hooks, and jsx-a11y. Implemented with **oxlint** (`typescript-eslint` does not support TypeScript 7 yet).                                                                        | `npm run lint` passes; added to `npm run check`.                                                         |
+| T-04 | Allow injecting `random` into `createApplication` (defaults to crypto random) so integration and e2e tests can be deterministic.                                                                                         | Production entry unchanged in behavior; tests can pass a seeded PRNG.                                    |
+| T-05 | Add React component tests with `@testing-library/react` for `HandCards`, `Roulette`, `Rules`, `Appearance`, `AudioControls`, dialogs in `ui.tsx`, and pure client helpers (`roulette.ts`, `motion.ts`, `appearance.ts`). | Each component has render + interaction tests; helpers have unit tests.                                  |
+| T-06 | Set up Playwright (`@playwright/test`) with a dedicated test server entry (`tests/e2e/server.ts`) serving the **production build** with seeded randomness, short bot delay, and a temp data dir.                         | `npm run test:e2e` builds, starts, and tests the app headlessly on Chromium, Firefox, and WebKit.        |
+| T-07 | Write the critical-journey e2e suite (see §5.2) including an accessibility scan with `@axe-core/playwright`.                                                                                                             | Suite runs < 5 min in CI; no serious/critical axe violations.                                            |
+| T-08 | Add GitHub Actions workflow (see §6).                                                                                                                                                                                    | Required status checks enabled on `main` via branch protection.                                          |
+| T-09 | Add Renovate or Dependabot with grouped weekly updates.                                                                                                                                                                  | Update PRs open automatically and run the full pipeline.                                                 |
 
 ### Phase 2 — Hardening (deployment blockers)
 
@@ -187,14 +195,16 @@ Server compilation and the single Dockerfile moved to Phase 0 (C-08, C-09).
 
 ### Phase 7 — Maintainability (continuous)
 
-| ID   | Task                                                                                                                                                | Acceptance criteria                                         |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| M-01 | Split `src/client/App.tsx` (~1 300 lines) into screen components (dashboard, profile, account, room setup) and hooks.                               | No file > ~400 lines; e2e suite unchanged and green.        |
-| M-02 | Split `src/client/components/Table.tsx` (~1 000 lines) into seat, hand, prompt, standings, and log components.                                      | Component tests per extracted part.                         |
-| M-03 | Split `src/server/app.ts` into `http/`, `ws/`, `rooms/` (command handlers), `scheduler/` (timers), `security/` (rate limit, headers, auth).         | Unit tests for command handlers and scheduler without HTTP. |
-| M-04 | Reduce CSS size (~9 000 lines across `styles.css`, `themes.css`, `motion.css`): co-locate per component, consolidate theme tokens as CSS variables. | Visual regression screenshots in Playwright stay unchanged. |
-| M-05 | Client resilience: handle non-JSON responses (proxy 502/503 pages) in `api()` with a clear message.                                                 | Unit test with mocked `fetch`.                              |
-| M-06 | Fill `package.json` metadata (author, license decision).                                                                                            | Licence chosen deliberately.                                |
+| ID   | Task                                                                                                                                                                                                                       | Acceptance criteria                                         |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| M-01 | Split `src/client/App.tsx` (~1 300 lines) into screen components (dashboard, profile, account, room setup) and hooks.                                                                                                      | No file > ~400 lines; e2e suite unchanged and green.        |
+| M-02 | Split `src/client/components/Table.tsx` (~1 000 lines) into seat, hand, prompt, standings, and log components.                                                                                                             | Component tests per extracted part.                         |
+| M-03 | Split `src/server/app.ts` into `http/`, `ws/`, `rooms/` (command handlers), `scheduler/` (timers), `security/` (rate limit, headers, auth).                                                                                | Unit tests for command handlers and scheduler without HTTP. |
+| M-04 | Reduce CSS size (~9 000 lines across `styles.css`, `themes.css`, `motion.css`): co-locate per component, consolidate theme tokens as CSS variables.                                                                        | Visual regression screenshots in Playwright stay unchanged. |
+| M-05 | Client resilience: handle non-JSON responses (proxy 502/503 pages) in `api()` with a clear message.                                                                                                                        | Unit test with mocked `fetch`.                              |
+| M-06 | Fill `package.json` metadata (author, license decision).                                                                                                                                                                   | Licence chosen deliberately.                                |
+| M-07 | Resolve existing lint warnings (React refs/effects/dependencies, jsx-a11y labels and roles) and promote those rules to errors.                                                                                             | `npm run lint` passes with `--max-warnings 0`; e2e green.   |
+| M-08 | Fix the remaining axe findings: color contrast in several themes (lobby and table) and a scrollable region without keyboard access on the table; then remove them from the allowlist in `tests/e2e/accessibility.spec.ts`. | Axe scan passes with an empty allowlist in all themes.      |
 
 ## 5. Testing strategy
 
@@ -203,24 +213,25 @@ Server compilation and the single Dockerfile moved to Phase 0 (C-08, C-09).
 ```text
 tests/
   unit/            Fast, no I/O. Engine, scoring, repository (in-memory SQLite),
-                   rate limiter, scheduler (fake timers), client helpers.
-  components/      React Testing Library + jsdom. Rendering and interactions.
+                   rate limiter, scheduler (fake timers).
+  client/          Vitest + jsdom + Testing Library: components and browser helpers.
   integration/     Real HTTP + WebSocket server on a random port, temp DB.
                    Auth, rooms, persistence, migrations, headers, limits.
   e2e/             Playwright against the production build in real browsers.
-    server.ts      Test entry: createApplication({ random: seeded, botDelay: 50, ... })
-    fixtures/      Multi-player fixtures (one browser context per player).
+    server.ts      Test entry: serve(..., { random: seeded, botDelay: 100, ... })
+    fixtures.ts    Helpers for players, tables, and playing a round.
+  support/         Shared helpers (seeded random generator).
 ```
 
 | Level       | Tooling                                | Runs on           | Target duration |
 | ----------- | -------------------------------------- | ----------------- | --------------- |
 | Unit        | Vitest (`node` env)                    | Every push / PR   | < 10 s          |
-| Component   | Vitest + Testing Library (`jsdom` env) | Every push / PR   | < 20 s          |
+| Client      | Vitest + Testing Library (`jsdom` env) | Every push / PR   | < 20 s          |
 | Integration | Vitest + real `http`/`ws`              | Every push / PR   | < 60 s          |
 | E2E         | Playwright (Chromium, Firefox, WebKit) | Every PR + `main` | < 5 min         |
 | Smoke       | Docker image + `curl`/Playwright smoke | Every PR + `main` | < 3 min         |
 
-Scripts (proposed): `test:unit`, `test:components`, `test:integration`, `test:e2e`, `test:coverage`, `test:all`.
+Scripts: `test:unit`, `test:client`, `test:integration`, `test:coverage`, `test:e2e` (see `docs/development.md`).
 
 ### 5.2 What each level must cover
 

@@ -16,7 +16,8 @@
     "test:unit": "vitest run --project unit",
     "test:client": "vitest run --project client",
     "test:coverage": "vitest run --coverage",
-    "lint": "oxlint --max-warnings 100"
+    "lint": "oxlint --max-warnings 87",
+    "test:e2e": "npm run build && playwright test"
   },
   "repository": {
     "type": "git",
@@ -36,11 +37,13 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/dm-serif-display": "^5.3.0",
     "@fontsource/rye": "^5.3.0",
+    "@playwright/test": "^1.64.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
