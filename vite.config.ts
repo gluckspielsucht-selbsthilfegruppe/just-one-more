@@ -9,6 +9,26 @@ export default defineConfig(({ isSsrBuild }) => ({
     : { outDir: 'dist/client' },
   test: {
     testTimeout: 15000,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      // Process entry points are exercised by the e2e suite and the Docker smoke test.
+      exclude: [
+        'src/client/main.tsx',
+        'src/server/dev.ts',
+        'src/server/index.ts',
+        'src/server/serve.ts',
+      ],
+      reporter: ['text-summary', 'html', 'lcov'],
+      thresholds: {
+        lines: 50,
+        statements: 50,
+        functions: 35,
+        branches: 40,
+        'src/shared/**': { lines: 95, statements: 95, functions: 100, branches: 90 },
+        'src/server/**': { lines: 85, statements: 80, functions: 85, branches: 75 },
+      },
+    },
     projects: [
       {
         extends: true,
