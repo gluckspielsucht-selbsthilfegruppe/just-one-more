@@ -9,9 +9,9 @@ import {
   startRound,
   toPublicRoom,
   triggerHackathon,
-} from '../src/shared/engine';
-import { scoreHand } from '../src/shared/scoring';
-import type { Card, CardKind, Room } from '../src/shared/types';
+} from '../../src/shared/engine';
+import { scoreHand } from '../../src/shared/scoring';
+import type { Card, CardKind, Room } from '../../src/shared/types';
 
 let sequence = 0;
 const card = (value: number, kind: CardKind = 'number'): Card => ({

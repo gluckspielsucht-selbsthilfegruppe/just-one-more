@@ -4,9 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createApplication } from '../src/server/app';
-import { DEFAULT_SETTINGS, makePlayer, startRound } from '../src/shared/engine';
-import type { Profile, PublicRoom } from '../src/shared/types';
+import { createApplication } from '../../src/server/app';
+import { DEFAULT_SETTINGS, makePlayer, startRound } from '../../src/shared/engine';
+import type { Profile, PublicRoom } from '../../src/shared/types';
 
 type Snapshot = {
   type: 'state';
