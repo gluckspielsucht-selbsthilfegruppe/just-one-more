@@ -2,11 +2,13 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore: ['**/*.md', 'docs/**']
   push:
     branches: [main]
+    paths-ignore: ['**/*.md', 'docs/**']
   schedule:
-    # Nightly run catches drift in browsers and transitive dependencies.
-    - cron: '0 3 * * *'
+    # Weekly full-browser run catches drift in browsers and transitive dependencies.
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -16,10 +18,15 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Pull requests run e2e in Chromium only; main, the weekly run, and manual runs cover all browsers.
+  FULL_E2E: ${{ github.event_name != 'pull_request' }}
+
 jobs:
-  static:
-    name: Format, lint, types
+  verify:
+    name: Format, lint, types, tests, build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -30,52 +37,26 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
-
-  test:
-    name: Tests (Node ${{ matrix.node }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [24, 26]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
       - run: npm run test:coverage
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
       - uses: actions/upload-artifact@v4
-        if: always() && matrix.node == 24
+        if: always()
         with:
           name: coverage
           path: coverage/
-          retention-days: 14
-
-  build:
-    name: Build
-    needs: [static, test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
-          retention-days: 7
+          retention-days: 1
 
   e2e:
     name: End-to-end (Playwright)
-    needs: build
+    needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -87,8 +68,27 @@ jobs:
         with:
           name: dist
           path: dist/
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npx playwright test
+      - name: Select browsers
+        id: browsers
+        run: |
+          echo "playwright=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+          if [ "$FULL_E2E" = "true" ]; then
+            echo "install=chromium firefox webkit" >> "$GITHUB_OUTPUT"
+            echo "projects=" >> "$GITHUB_OUTPUT"
+          else
+            echo "install=chromium" >> "$GITHUB_OUTPUT"
+            echo "projects=--project=chromium --project=mobile-chrome" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.browsers.outputs.playwright }}-${{ steps.browsers.outputs.install }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps ${{ steps.browsers.outputs.install }}
+      - if: steps.cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps ${{ steps.browsers.outputs.install }}
+      - run: npx playwright test ${{ steps.browsers.outputs.projects }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -96,15 +96,23 @@ jobs:
           path: |
             playwright-report/
             test-results/
-          retention-days: 14
+          retention-days: 7
 
   docker:
     name: Docker image smoke test
-    needs: [static, test]
+    needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - run: docker build -t just-one-more:ci .
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: just-one-more:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Start the container and check health
         run: |
           docker run -d --name app -p 3000:3000 just-one-more:ci
@@ -113,14 +121,3 @@ jobs:
           curl -fsS http://localhost:3000/ | grep -q '<div id="root">'
       - if: always()
         run: docker logs app
-
-  audit:
-    name: Dependency audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm audit --omit=dev --audit-level=high

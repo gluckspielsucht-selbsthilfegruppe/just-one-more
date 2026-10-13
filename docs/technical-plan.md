@@ -277,21 +277,17 @@ Scripts: `test:unit`, `test:client`, `test:integration`, `test:coverage`, `test:
 
 ```mermaid
 flowchart LR
-  A[install<br/>npm ci + cache] --> B[static<br/>format · lint · tsc]
-  A --> C[unit + components<br/>coverage]
-  A --> D[integration]
-  B & C & D --> E[build<br/>vite + server]
-  E --> F[e2e<br/>Playwright 3 browsers]
-  E --> G[docker<br/>build + smoke test]
+  A[verify<br/>format · lint · types · tests · build · audit] --> F[e2e<br/>PR: Chromium · main: all browsers]
+  A --> G[docker<br/>cached build + smoke test]
   F & G --> H{main?}
   H -- yes --> I[publish image to GHCR]
   I --> J[deploy<br/>manual approval]
 ```
 
-- Triggers: pull requests, pushes to `main`, nightly schedule (catches upstream/browser drift).
-- Node version matrix for unit/integration: current LTS and the next LTS.
+- Triggers: pull requests and pushes to `main` (not for docs-only changes), a weekly schedule (catches upstream/browser drift), and manual runs.
+- Runs are kept small for limited Actions usage: one Node version (`.nvmrc`), a single `npm ci` for all static checks, tests, and the build; Chromium-only e2e on pull requests; cached Playwright browsers and Docker layers; superseded runs are cancelled.
 - Artifacts: coverage report, Playwright HTML report and traces on failure.
-- `npm audit --omit=dev --audit-level=high` as a non-blocking report, blocking for production dependencies with high/critical advisories.
+- `npm audit --omit=dev --audit-level=high` blocks on high/critical advisories in production dependencies.
 - Branch protection on `main`: all jobs required, at least one review, linear history.
 - Dependency updates (T-09): grouped by ecosystem (React, Vite/Vitest, types, lint), weekly; auto-merge allowed only for dev-dependency patch updates with a fully green pipeline.
 

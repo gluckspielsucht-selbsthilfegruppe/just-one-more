@@ -86,14 +86,13 @@ The e2e accessibility spec fails on any serious or critical axe finding except t
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request, on pushes to `main`, and nightly:
+`.github/workflows/ci.yml` runs on pull requests and pushes to `main` (skipped when only Markdown or `docs/` change), weekly on Monday, and on demand. Three jobs, using the Node version from `.nvmrc`:
 
-1. **Format, lint, types**: `format:check`, `lint`, `typecheck`.
-2. **Tests**: all Vitest projects with coverage thresholds on Node 24 and 26; coverage report uploaded as an artifact.
-3. **Build**: production client and server bundles.
-4. **End-to-end**: Playwright against the built app in Chromium, Firefox, WebKit, and mobile profiles; report and traces uploaded on failure.
-5. **Docker**: builds the image, starts it, and checks `/api/health` and the client page.
-6. **Audit**: `npm audit` for high or critical advisories in production dependencies.
+1. **Verify**: one `npm ci`, then `format:check`, `lint`, `typecheck`, all Vitest projects with coverage thresholds, the production build, and `npm audit` for high or critical advisories in production dependencies. Uploads the coverage report and the build.
+2. **End-to-end**: Playwright against the built app. Pull requests run Chromium and the mobile Chrome profile; `main`, the weekly run, and manual runs cover all browsers. Browsers are cached per Playwright version; report and traces are uploaded on failure.
+3. **Docker**: builds the image with the GitHub Actions layer cache, starts it, and checks `/api/health` and the client page.
+
+A newer push to the same branch cancels the running workflow.
 
 Dependabot (`.github/dependabot.yml`) opens grouped weekly updates for npm packages, GitHub Actions, and the Docker base image; each update runs the full pipeline. Protect `main` in the repository settings and require these checks before merging.
 
