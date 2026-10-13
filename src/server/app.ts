@@ -9,6 +9,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
+import { pinoHttp } from 'pino-http';
 import proxyAddr from 'proxy-addr';
 import { WebSocket, WebSocketServer } from 'ws';
 import { z } from 'zod';
@@ -35,6 +36,7 @@ import {
 } from '../shared/types';
 import { Store, type User } from './store';
 import type { TrustProxy } from './config';
+import { silentLogger, type Logger } from './logger';
 
 const derive = promisify(scrypt);
 const secureRandom = () => randomInt(0, 0x100000000) / 0x100000000;
@@ -110,11 +112,13 @@ export interface ApplicationOptions {
   contentSecurityPolicy?: boolean;
   // Minimum gap between public room list updates to lobby clients.
   roomListInterval?: number;
+  logger?: Logger;
 }
 
 export function createApplication(options: ApplicationOptions = {}) {
   const random = options.random ?? secureRandom;
-  const store = new Store(options.databaseFile);
+  const logger = options.logger ?? silentLogger;
+  const store = new Store(options.databaseFile, logger);
   const app = express();
   const server = createServer(app);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 8192 });
@@ -133,6 +137,28 @@ export function createApplication(options: ApplicationOptions = {}) {
   let closing = false;
   app.disable('x-powered-by');
   app.set('trust proxy', options.trustProxy ?? false);
+  app.use(
+    pinoHttp({
+      logger,
+      genReqId: (_req, res) => {
+        const id = randomUUID();
+        res.setHeader('X-Request-Id', id);
+        return id;
+      },
+      autoLogging: { ignore: (req) => req.url === '/api/health' || req.url === '/api/ready' },
+      // Static files are noise at info level; failures always show.
+      customLogLevel: (req, res, error) =>
+        error || res.statusCode >= 500 ? 'error' : req.url?.startsWith('/api/') ? 'info' : 'debug',
+      serializers: {
+        req: (req: { id: string; method: string; url: string }) => ({
+          id: req.id,
+          method: req.method,
+          url: req.url,
+        }),
+        res: (res: { statusCode: number }) => ({ statusCode: res.statusCode }),
+      },
+    }),
+  );
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
@@ -319,7 +345,7 @@ export function createApplication(options: ApplicationOptions = {}) {
             store.setRoom(next);
             commit(next);
           } catch (error) {
-            console.error('Automatic action failed:', error);
+            logger.error({ err: error, room: room.code }, 'Automatic action failed');
           }
         },
         actor.bot ? (options.botDelay ?? 1100) : (options.disconnectDelay ?? 30000),
@@ -456,7 +482,7 @@ export function createApplication(options: ApplicationOptions = {}) {
           if (c.tokenHash === hash(previous)) ws.close(4001, 'Session changed');
       res.json({ profile: publicProfile(user) });
     } catch (error) {
-      console.error('Account operation failed:', error);
+      req.log.error({ err: error }, 'Account operation failed');
       res.status(500).json({ error: 'Could not update your account. Please try again.' });
     }
   });
@@ -647,6 +673,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         const own = sockets.get(user.id) ?? new Set<WebSocket>();
         own.add(ws);
         sockets.set(user.id, own);
+        logger.debug({ user: user.id }, 'WebSocket connected');
         const room = roomFor(user.id);
         const p = room?.players.find((p) => p.id === user.id);
         const host = room?.players.find((p) => p.id === room.hostId);
@@ -701,14 +728,20 @@ export function createApplication(options: ApplicationOptions = {}) {
             if (seen.size > 512) seen.delete(seen.values().next().value!);
             send(ws, { type: 'ack', id: msg.id });
           } catch (error) {
+            // Rule violations are plain Errors meant for the player; anything else is a bug.
+            const expected =
+              error instanceof z.ZodError ||
+              (error instanceof Error && error.constructor === Error);
+            if (expected) logger.debug({ user: user.id, err: error }, 'Command rejected');
+            else logger.error({ user: user.id, err: error }, 'Command failed');
             send(ws, {
               type: 'error',
               id: requestId,
               message:
                 error instanceof z.ZodError
                   ? 'Some details are invalid. Check your entry and try again.'
-                  : error instanceof Error
-                    ? error.message
+                  : expected
+                    ? (error as Error).message
                     : 'Something went wrong.',
             });
             const state = stateFor(user.id);
@@ -718,6 +751,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         ws.on('close', () => {
           clients.delete(ws);
           own.delete(ws);
+          logger.debug({ user: user.id }, 'WebSocket closed');
           if (!own.size && sockets.get(user.id) === own) sockets.delete(user.id);
           if (closing || connected(user.id)) return;
           const room = roomFor(user.id);
@@ -737,6 +771,7 @@ export function createApplication(options: ApplicationOptions = {}) {
   function cleanup(now = Date.now()) {
     for (const [key, value] of limits) if (value.reset < now) limits.delete(key);
     let changed = false;
+    let removedRooms = 0;
     for (const room of [...store.rooms()])
       if (room.updatedAt < now - ROOM_TTL && !room.players.some((p) => !p.bot && connected(p.id))) {
         clearTimeout(timers.get(room.code));
@@ -745,6 +780,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         store.removeRoom(room.code);
         indexRoom(room.code);
         changed = true;
+        removedRooms++;
       }
     const seated = new Set<string>();
     const games = new Set<string>();
@@ -752,7 +788,9 @@ export function createApplication(options: ApplicationOptions = {}) {
       games.add(room.gameId);
       for (const p of room.players) seated.add(p.id);
     }
-    store.prune(now, seated, games);
+    const pruned = store.prune(now, seated, games);
+    if (removedRooms || pruned)
+      logger.info({ removedRooms, removedSessionsAndGuests: pruned }, 'Retention cleanup');
     for (const [ws, c] of clients)
       if (!store.getSession(c.tokenHash)) ws.close(4001, 'Session expired');
     if (changed) publishRoomList();
@@ -769,14 +807,14 @@ export function createApplication(options: ApplicationOptions = {}) {
   }, 30000);
   heartbeat.unref();
   app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
-  app.use((error: unknown, _req: Request, res: express.Response, _next: express.NextFunction) => {
+  app.use((error: unknown, req: Request, res: express.Response, _next: express.NextFunction) => {
     const status = clientErrorStatus(error);
     if (status)
       return res.status(status).json({
         error:
           status === 413 ? 'That request is too large.' : 'The request could not be processed.',
       });
-    console.error(error);
+    req.log.error({ err: error }, 'Request failed');
     res.status(500).json({ error: 'Something went wrong on our side. Please try again.' });
   });
   async function close() {
