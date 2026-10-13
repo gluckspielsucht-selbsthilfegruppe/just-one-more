@@ -108,6 +108,8 @@ export interface ApplicationOptions {
   cookieSecure?: boolean;
   // Vite's development server needs inline scripts, so dev disables the policy.
   contentSecurityPolicy?: boolean;
+  // Minimum gap between public room list updates to lobby clients.
+  roomListInterval?: number;
 }
 
 export function createApplication(options: ApplicationOptions = {}) {
@@ -117,10 +119,17 @@ export function createApplication(options: ApplicationOptions = {}) {
   const server = createServer(app);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 8192 });
   const clients = new Map<WebSocket, { userId: string; tokenHash: string; alive: boolean }>();
+  const sockets = new Map<string, Set<WebSocket>>();
+  const seats = new Map<string, string>();
+  const members = new Map<string, Set<string>>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const timerKeys = new Map<string, string>();
   const receipts = new Map<string, Set<string>>();
   const limits = new Map<string, { count: number; reset: number }>();
+  const roomListInterval = options.roomListInterval ?? 1000;
+  let roomListTimer: ReturnType<typeof setTimeout> | undefined;
+  let roomListSentAt = 0;
+  let roomList = '';
   let closing = false;
   app.disable('x-powered-by');
   app.set('trust proxy', options.trustProxy ?? false);
@@ -160,10 +169,23 @@ export function createApplication(options: ApplicationOptions = {}) {
     const session = token ? store.getSession(hash(token)) : undefined;
     return session && session.expires > Date.now() ? store.getUser(session.userId) : undefined;
   }
-  function roomFor(id: string) {
-    return [...store.rooms()].find(
-      (r) => r.players.some((p) => p.id === id) && !r.departedIds.includes(id),
+  /** Re-reads who is seated at a room; returns everyone who was or is seated there. */
+  function indexRoom(code: string) {
+    const previous = members.get(code) ?? new Set<string>();
+    for (const id of previous) if (seats.get(id) === code) seats.delete(id);
+    const room = store.getRoom(code);
+    const current = new Set(
+      room?.players.filter((p) => !room.departedIds.includes(p.id)).map((p) => p.id),
     );
+    for (const id of current) seats.set(id, code);
+    if (room) members.set(code, current);
+    else members.delete(code);
+    return new Set([...previous, ...current]);
+  }
+  for (const room of store.rooms()) indexRoom(room.code);
+  function roomFor(id: string) {
+    const code = seats.get(id);
+    return code ? store.getRoom(code) : undefined;
   }
   function summary(): RoomSummary[] {
     return [...store.rooms()]
@@ -180,7 +202,8 @@ export function createApplication(options: ApplicationOptions = {}) {
       }));
   }
   function send(ws: WebSocket, value: unknown) {
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(value));
+    if (ws.readyState === WebSocket.OPEN)
+      ws.send(typeof value === 'string' ? value : JSON.stringify(value));
   }
   function stateFor(userId: string, rooms = summary()) {
     const user = store.getUser(userId);
@@ -193,17 +216,40 @@ export function createApplication(options: ApplicationOptions = {}) {
       room: room ? toPublicRoom(room) : null,
     };
   }
-  function broadcast() {
-    const rooms = summary();
-    for (const [ws, client] of clients) {
-      const state = stateFor(client.userId, rooms);
-      if (state) send(ws, state);
+  function publish(userIds: Set<string>) {
+    let rooms: RoomSummary[] | undefined;
+    for (const id of userIds) {
+      const targets = sockets.get(id);
+      if (!targets) continue;
+      const state = stateFor(id, (rooms ??= summary()));
+      if (!state) continue;
+      const text = JSON.stringify(state);
+      for (const ws of targets) send(ws, text);
     }
   }
-  function connected(id: string) {
-    return [...clients.values()].some((c) => c.userId === id);
+  // Lobby clients only need the public list; it is sent on change, at most once per interval.
+  function publishRoomList() {
+    if (roomListTimer || closing) return;
+    roomListTimer = setTimeout(
+      () => {
+        roomListTimer = undefined;
+        roomListSentAt = Date.now();
+        const rooms = summary();
+        const text = JSON.stringify(rooms);
+        if (text === roomList) return;
+        roomList = text;
+        const message = JSON.stringify({ type: 'rooms', rooms });
+        for (const [id, targets] of sockets)
+          if (!seats.has(id)) for (const ws of targets) send(ws, message);
+      },
+      Math.max(0, roomListSentAt + roomListInterval - Date.now()),
+    );
   }
-  function commit(room?: Room) {
+  function connected(id: string) {
+    return sockets.has(id);
+  }
+  function commit(room?: Room, notify: Iterable<string> = []) {
+    const recipients = new Set(notify);
     if (room) {
       room.version++;
       room.updatedAt = Date.now();
@@ -212,9 +258,13 @@ export function createApplication(options: ApplicationOptions = {}) {
         if (store.getRoom(room.code) === room) store.saveRoom(room);
         store.recordResults(room);
       });
+      for (const id of indexRoom(room.code)) recipients.add(id);
     }
-    broadcast();
-    if (room) schedule(room);
+    publish(recipients);
+    if (room) {
+      publishRoomList();
+      schedule(room);
+    }
   }
   function schedule(room: Room) {
     const key = `${room.gameId}:${room.round}:${room.phase}:${room.prompt?.kind ?? 'turn'}:${room.prompt?.actorId ?? room.turnId}`;
@@ -347,7 +397,7 @@ export function createApplication(options: ApplicationOptions = {}) {
       player.name = user.name;
       player.color = user.color;
     }
-    commit(room);
+    commit(room, [user.id]);
     res.json({ profile: publicProfile(user) });
   });
   app.post('/api/auth/:mode', async (req, res) => {
@@ -594,14 +644,22 @@ export function createApplication(options: ApplicationOptions = {}) {
       const token = cookieToken(req)!;
       wss.handleUpgrade(req, socket, head, (ws) => {
         clients.set(ws, { userId: user.id, tokenHash: hash(token), alive: true });
+        const own = sockets.get(user.id) ?? new Set<WebSocket>();
+        own.add(ws);
+        sockets.set(user.id, own);
         const room = roomFor(user.id);
         const p = room?.players.find((p) => p.id === user.id);
-        if (p) {
+        const host = room?.players.find((p) => p.id === room.hostId);
+        const reclaimHost =
+          !!p && room!.hostId !== user.id && (!host || host.bot || !host.connected);
+        if (p && (!p.connected || reclaimHost)) {
           p.connected = true;
-          const host = room!.players.find((p) => p.id === room!.hostId);
-          if (!host || host.bot || !host.connected) room!.hostId = user.id;
+          if (reclaimHost) room!.hostId = user.id;
+          commit(room, [user.id]);
+        } else {
+          const state = stateFor(user.id);
+          if (state) send(ws, state);
         }
-        commit(room);
         ws.on('pong', () => {
           const c = clients.get(ws);
           if (c) c.alive = true;
@@ -659,15 +717,16 @@ export function createApplication(options: ApplicationOptions = {}) {
         });
         ws.on('close', () => {
           clients.delete(ws);
-          if (closing) return;
+          own.delete(ws);
+          if (!own.size && sockets.get(user.id) === own) sockets.delete(user.id);
+          if (closing || connected(user.id)) return;
           const room = roomFor(user.id);
           const p = room?.players.find((p) => p.id === user.id);
-          if (p && !connected(user.id)) {
-            p.connected = false;
-            if (room!.hostId === user.id)
-              room!.hostId =
-                room!.players.find((other) => !other.bot && other.connected)?.id ?? user.id;
-          }
+          if (!p?.connected) return;
+          p.connected = false;
+          if (room!.hostId === user.id)
+            room!.hostId =
+              room!.players.find((other) => !other.bot && other.connected)?.id ?? user.id;
           commit(room);
         });
       });
@@ -684,6 +743,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         timers.delete(room.code);
         timerKeys.delete(room.code);
         store.removeRoom(room.code);
+        indexRoom(room.code);
         changed = true;
       }
     const seated = new Set<string>();
@@ -695,7 +755,7 @@ export function createApplication(options: ApplicationOptions = {}) {
     store.prune(now, seated, games);
     for (const [ws, c] of clients)
       if (!store.getSession(c.tokenHash)) ws.close(4001, 'Session expired');
-    if (changed) broadcast();
+    if (changed) publishRoomList();
   }
   const heartbeat = setInterval(() => {
     for (const [ws, c] of clients) {
@@ -722,6 +782,7 @@ export function createApplication(options: ApplicationOptions = {}) {
   async function close() {
     closing = true;
     clearInterval(heartbeat);
+    clearTimeout(roomListTimer);
     for (const timer of timers.values()) clearTimeout(timer);
     for (const ws of clients.keys()) ws.terminate();
     wss.close();
