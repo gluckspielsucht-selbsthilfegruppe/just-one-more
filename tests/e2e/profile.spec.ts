@@ -29,6 +29,7 @@ test('register an account, then sign in from a fresh browser', async ({ browser 
 
 test('a wrong password is rejected with a clear message', async ({ page }, testInfo) => {
   // The server allows 10 auth attempts per minute and IP; one browser is enough here.
+  // eslint-disable-next-line playwright/no-skipped-test
   test.skip(testInfo.project.name !== 'chromium');
   await openApp(page);
   await page.locator('.profile-button').click();

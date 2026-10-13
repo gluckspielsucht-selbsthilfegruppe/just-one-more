@@ -21,7 +21,7 @@ To test with several players locally, use separate browser profiles or private w
 | `npm run build`            | Type-check, build the client to `dist/client` and the server to `dist/server`.                 |
 | `npm start`                | Run the production build with plain Node.js.                                                   |
 | `npm run typecheck`        | Type-check client, Node, and e2e projects (`tsc -b`).                                          |
-| `npm run lint`             | Lint with oxlint (fails on errors or on more warnings than the current ceiling).               |
+| `npm run lint`             | Lint with ESLint (fails on errors or on more warnings than the current ceiling).               |
 | `npm test`                 | Run all Vitest projects.                                                                       |
 | `npm run test:unit`        | Engine and scoring tests (Node).                                                               |
 | `npm run test:client`      | Client tests (jsdom, Testing Library).                                                         |
@@ -78,7 +78,9 @@ Coverage thresholds live in `vite.config.ts` (`test.coverage.thresholds`). Raise
 
 ## Linting
 
-[oxlint](https://oxc.rs/docs/guide/usage/linter) runs with the TypeScript, React (including hooks), jsx-a11y, import, Vitest, and unicorn plugins (`.oxlintrc.json`). ESLint with `typescript-eslint` is not used because it does not yet support TypeScript 7. Existing React-hooks and accessibility findings are warnings for now; `npm run lint` fails if their number grows. Lower `--max-warnings` in `package.json` whenever you fix some.
+ESLint (`eslint.config.js`) runs `@eslint/js` and `typescript-eslint` recommended rules everywhere, React hooks (including the React Compiler rules) and jsx-a11y (`eslint-plugin-jsx-a11y-x`, a maintained fork that supports ESLint 10) for client code, the Vitest plugin for unit/client/integration tests, and the Playwright plugin for e2e tests. Existing React-hooks and accessibility findings are warnings for now; `npm run lint` fails if their number grows. Lower `--max-warnings` in `package.json` whenever you fix some.
+
+TypeScript stays on 6.0 because `typescript-eslint` needs the TypeScript JavaScript API, which TypeScript 7 no longer ships. Upgrade once `typescript-eslint` supports TypeScript 7.
 
 The e2e accessibility spec fails on any serious or critical axe finding except the known ones listed in `tests/e2e/accessibility.spec.ts` (tracked as M-08 in the technical plan).
 
