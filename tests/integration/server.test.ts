@@ -40,7 +40,9 @@ async function listen() {
   if (!address || typeof address === 'string') throw new Error('No server address');
   base = `http://127.0.0.1:${address.port}`;
 }
-async function request(path: string, body?: unknown, cookie?: string) {
+// Node's fetch types json() as unknown; tests assert on the payload shape directly.
+type ApiResponse = Omit<Response, 'json'> & { json(): Promise<any> };
+async function request(path: string, body?: unknown, cookie?: string): Promise<ApiResponse> {
   return fetch(`${base}/api/${path}`, {
     method: body ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
