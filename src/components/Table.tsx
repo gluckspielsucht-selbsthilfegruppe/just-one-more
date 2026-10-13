@@ -32,7 +32,7 @@ import { ActiveEffectHint, SpecialCardGuide } from './SpecialCardGuide';
 import { RouletteDialog } from './Roulette';
 import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
 import { useHandFeedback } from '../motion';
-import { rouletteResult, type RouletteBet } from '../roulette';
+import { momentDelay, rouletteResult, type RouletteBet } from '../roulette';
 import type { SoundCue } from '../audio';
 import { useReducedMotion } from '../motion';
 
@@ -305,7 +305,10 @@ export function Table({
   const [momentQueue, setMomentQueue] = useState<GameEvent[]>([]);
   const [seatMoments, setSeatMoments] = useState<Record<string, GameEvent>>({});
   const reducedMotion = useReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
   const seatTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const pendingMoments = useRef(new Set<ReturnType<typeof setTimeout>>());
   const { scoreCue, milestoneCue, bankCue } = useHandFeedback({
     scope: `${room.gameId}:${room.round}`,
     sequence: room.eventSequence,
@@ -325,45 +328,61 @@ export function Table({
   }, [room.round, room.phase, room.prompt?.kind]);
   useEffect(() => {
     const timers = seatTimers.current;
-    return () => timers.forEach(clearTimeout);
+    const pending = pendingMoments.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      pending.forEach(clearTimeout);
+    };
   }, []);
   useEffect(() => {
     const previous = seenMoments.current;
     seenMoments.current = { gameId: room.gameId, round: room.round, sequence: room.eventSequence };
-    if (previous.gameId !== room.gameId) {
+    const reset = () => {
       setMomentQueue([]);
       setSeatMoments({});
       seatTimers.current.forEach(clearTimeout);
       seatTimers.current.clear();
+      pendingMoments.current.forEach(clearTimeout);
+      pendingMoments.current.clear();
+    };
+    if (previous.gameId !== room.gameId) {
+      reset();
       return;
     }
-    if (previous.round !== room.round) {
-      setMomentQueue([]);
-      setSeatMoments({});
-      seatTimers.current.forEach(clearTimeout);
-      seatTimers.current.clear();
-    }
+    if (previous.round !== room.round) reset();
+    const show = (event: GameEvent) => {
+      if (event.playerId) {
+        const playerId = event.playerId;
+        clearTimeout(seatTimers.current.get(playerId));
+        setSeatMoments((seats) => ({ ...seats, [playerId]: event }));
+        seatTimers.current.set(
+          playerId,
+          setTimeout(() => {
+            setSeatMoments((seats) => {
+              if (seats[playerId]?.id !== event.id) return seats;
+              const next = { ...seats };
+              delete next[playerId];
+              return next;
+            });
+            seatTimers.current.delete(playerId);
+          }, 1500),
+        );
+      }
+      if (event.moment !== 'bank') setMomentQueue((queue) => [...queue, event]);
+    };
     const fresh = room.events.filter((event) => event.id > previous.sequence && event.moment);
     for (const event of fresh) {
-      if (!event.playerId) continue;
-      const playerId = event.playerId;
-      clearTimeout(seatTimers.current.get(playerId));
-      setSeatMoments((seats) => ({ ...seats, [playerId]: event }));
-      seatTimers.current.set(
-        playerId,
-        setTimeout(() => {
-          setSeatMoments((seats) => {
-            if (seats[playerId]?.id !== event.id) return seats;
-            const next = { ...seats };
-            delete next[playerId];
-            return next;
-          });
-          seatTimers.current.delete(playerId);
-        }, 1500),
-      );
+      const delay = momentDelay(event, reducedMotionRef.current);
+      if (!delay) {
+        show(event);
+        continue;
+      }
+      const timer = setTimeout(() => {
+        pendingMoments.current.delete(timer);
+        show(event);
+      }, delay);
+      pendingMoments.current.add(timer);
     }
-    const splashes = fresh.filter((event) => event.moment !== 'bank');
-    if (splashes.length) setMomentQueue((queue) => [...queue, ...splashes]);
   }, [room.gameId, room.round, room.eventSequence]);
   useEffect(() => {
     if (!moment) return;

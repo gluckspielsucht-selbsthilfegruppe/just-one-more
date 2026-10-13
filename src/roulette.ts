@@ -1,8 +1,14 @@
-import type { PublicRoom } from '../shared/types';
+import type { GameEvent, PublicRoom } from '../shared/types';
 
 export type RouletteBet = { gameId: string; round: number; points: number; qualified: boolean };
 export type RouletteResult = { multiplier: 0 | 2; points: number };
 export const SPIN_DURATION = 4200;
+
+// Roulette outcomes arrive with the bank, so table moments wait for the wheel to stop.
+export function momentDelay(event: Pick<GameEvent, 'moment'>, reducedMotion: boolean) {
+  if (reducedMotion) return 0;
+  return event.moment === 'roulette-win' || event.moment === 'roulette-loss' ? SPIN_DURATION : 0;
+}
 
 export function rouletteResult(
   room: PublicRoom,

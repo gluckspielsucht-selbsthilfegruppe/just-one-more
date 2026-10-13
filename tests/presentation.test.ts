@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRoom, makePlayer, toPublicRoom, DEFAULT_SETTINGS } from '../shared/engine';
-import { rouletteResult, rouletteRotation, type RouletteBet } from '../src/roulette';
+import {
+  momentDelay,
+  rouletteResult,
+  rouletteRotation,
+  SPIN_DURATION,
+  type RouletteBet,
+} from '../src/roulette';
 import {
   DEFAULT_AUDIO_SETTINGS,
   GameAudio,
@@ -65,6 +71,13 @@ describe('roulette presentation uses the confirmed game result', () => {
     expect(rouletteResult(toPublicRoom(room), 'a', bet)).toBeNull();
     room.players[0].roulette = 2;
     expect(rouletteResult(toPublicRoom(room), 'a', { ...bet, gameId: 'other-game' })).toBeNull();
+  });
+  it('holds roulette table moments until the wheel has stopped', () => {
+    expect(momentDelay({ moment: 'roulette-win' }, false)).toBe(SPIN_DURATION);
+    expect(momentDelay({ moment: 'roulette-loss' }, false)).toBe(SPIN_DURATION);
+    expect(momentDelay({ moment: 'bust' }, false)).toBe(0);
+    expect(momentDelay({ moment: 'bank' }, false)).toBe(0);
+    expect(momentDelay({ moment: 'roulette-win' }, true)).toBe(0);
   });
 });
 
