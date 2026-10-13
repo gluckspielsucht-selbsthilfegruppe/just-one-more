@@ -25,9 +25,14 @@ describe('server configuration', () => {
 
   it('reads defaults and overrides from the environment', () => {
     expect(readConfig({})).toMatchObject({ port: 3000, trustProxy: false });
-    expect(readConfig({}).dataFile).toMatch(/data[/\\]game\.json$/);
+    expect(readConfig({}).databaseFile).toMatch(/data[/\\]just-one-more\.db$/);
     expect(
       readConfig({ PORT: '8080', DATA_DIR: '/tmp/x', TRUST_PROXY: '1', COOKIE_SECURE: 'true' }),
-    ).toEqual({ port: 8080, dataFile: '/tmp/x/game.json', trustProxy: 1, cookieSecure: true });
+    ).toEqual({
+      port: 8080,
+      databaseFile: '/tmp/x/just-one-more.db',
+      trustProxy: 1,
+      cookieSecure: true,
+    });
   });
 });

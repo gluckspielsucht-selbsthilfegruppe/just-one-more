@@ -18,7 +18,7 @@ flowchart LR
   HTTP --> Store
   WS --> Engine
   WS --> Store
-  Store --> File[(data/game.json)]
+  Store --> File[(SQLite<br/>data/just-one-more.db)]
 ```
 
 ## Components
@@ -29,7 +29,7 @@ flowchart LR
 | `src/shared/engine.ts`   | Authoritative rule engine: deck, turns, special-card resolution, settlement, bot choices.            |
 | `src/shared/scoring.ts`  | Pure score breakdowns, used by the engine and the UI.                                                |
 | `src/server/app.ts`      | HTTP endpoints, WebSocket handling, validation (Zod), sessions, rate limits, room lifecycle, timers. |
-| `src/server/store.ts`    | Persistence: in-memory database written atomically to a JSON snapshot.                               |
+| `src/server/store.ts`    | Persistence: SQLite (better-sqlite3) with versioned migrations; active rooms cached in memory.       |
 | `src/server/serve.ts`    | Shared startup: configuration, listening, LAN URLs, graceful shutdown.                               |
 | `src/server/index.ts`    | Production entry: serves the built client from `dist/client`.                                        |
 | `src/server/dev.ts`      | Development entry: mounts Vite in middleware mode for hot reloading.                                 |
@@ -50,7 +50,7 @@ flowchart LR
 - One user can actively belong to one room. Explicitly departed players can join another; their old seats automatically finish any unresolved round decisions.
 - Guest access includes the full game and visual designs. Optional accounts add cross-device identity and durable access to statistics. There are no artificial gameplay restrictions, email requirements, external identity providers, payments, or password-recovery promises.
 - Accounts are local to this installation, identified by a case-insensitive username. Changing a display nickname does not change that account’s login username.
-- Round counts, best round, and best total update after each settled round, including busted rounds and practice games. Games and wins update once when a game finishes. A persisted checkpoint per game prevents rounds from being counted again after chat, reconnect, or restart. Older saves backfill available unfinished-game history; completed games already included their rounds and are not counted again. History from rooms already deleted cannot be recovered. A rematch resets totals and hands, retains settings and connected seats, and returns to the waiting room.
+- Round counts, best round, and best total update after each settled round, including busted rounds and practice games. Games and wins update once when a game finishes. A persisted checkpoint per game prevents rounds from being counted again after chat, reconnect, or restart. A rematch resets totals and hands, retains settings and connected seats, and returns to the waiting room.
 - Every hand has a special-card row above a number-card row, including frozen or disabled cards in their respective rows. Prediction multipliers appear with special cards. Rows scroll horizontally when needed. Both banked and busted players are out for the round: their cards receive an animated light gray shadow, with an immediate state change under reduced motion. Opponent hands remain visible in round results.
 - Bot choices are heuristics, not hidden-deck analysis. They inspect public hands and scores only. They must resolve exactly the same legal prompts as human players.
 - Sound is off by default and stored per browser. Appearance is saved with the profile. All number and effect cards remain public, as in the tabletop rules.
@@ -61,7 +61,22 @@ The game engine runs only on the server. Its state machine resolves physical dra
 
 Clients receive a public projection that omits the draw pile, discards, and effect queues. They never shuffle, choose random results, or write scores. Each game action includes a state version; a stale action is rejected with a refreshed snapshot. Successful request IDs are deduplicated per player (last 512 in process), and state versions protect game actions after a restart. There is no automatic retry of an uncertain action; the player sees the current state before deciding again.
 
-Room mutations are synchronous in one process. Committed snapshots are written to a temporary file with restrictive file permissions, then atomically renamed. Room shuffles and roulette use Node’s cryptographic random source.
+Room mutations are synchronous in one process. Room shuffles and roulette use Node’s cryptographic random source.
+
+## Persistence
+
+All data lives in one SQLite file (WAL mode, `synchronous=NORMAL`, foreign keys on). The schema version is `PRAGMA user_version`; on startup the server applies any newer migration from `store.ts`, each in its own transaction.
+
+| Table           | Contents                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| `users`         | Profile, appearance, optional account (case-insensitive unique username, scrypt hash), stats. |
+| `sessions`      | SHA-256 hash of the session token, user, expiry. Deleted with their user.                     |
+| `rooms`         | One JSON document per active room, including the private deck.                                |
+| `game_progress` | Last counted round and completion per game, so stats are never counted twice.                 |
+
+Users and sessions are read from the database on each request. Active rooms are loaded into memory on startup (with every human marked disconnected) and written back, together with any stat changes, in one transaction per committed change. If the file cannot be opened as a database, it is moved to `just-one-more.db.corrupt-<timestamp>` and the server starts empty.
+
+Retention runs with the 30-second heartbeat: expired sessions are deleted; guest profiles without a session (no way to sign in again) are deleted unless they still hold a seat; rooms without activity for 24 hours are deleted when nobody is connected; and stat checkpoints of games that no longer have a room are dropped.
 
 ## Sessions, security, and disconnects
 
@@ -78,4 +93,4 @@ The app runs locally or in Docker and listens on `0.0.0.0`, so friends on the sa
 
 ## Operational boundaries
 
-One process owns its data file; the file store is not suitable for multiple instances, and snapshots are not an operational backup. Account recovery, moderation tooling, spectators, and matchmaking across servers are not implemented. The game rules stay isolated in `src/shared` so new cards and rule variants can be added without changing transport or presentation. The migration to SQLite and further hardening are tracked in [technical-plan.md](technical-plan.md).
+One process owns its database file; run a single instance per file. Account recovery, moderation tooling, spectators, and matchmaking across servers are not implemented. The game rules stay isolated in `src/shared` so new cards and rule variants can be added without changing transport or presentation. Further work is tracked in [technical-plan.md](technical-plan.md).

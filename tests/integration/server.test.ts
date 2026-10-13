@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApplication } from '../../src/server/app';
@@ -93,7 +93,7 @@ async function connect(name: string, cookie?: string): Promise<Client> {
 }
 // Deal controlled hands, then exercise settlement through the real WebSocket commands.
 async function dealStatsRound(host: Client, values: number[], totals?: number[]) {
-  const room = application.store.data.rooms[host.state.room!.code];
+  const room = application.store.getRoom(host.state.room!.code)!;
   room.phase = 'playing';
   room.round++;
   room.turnId = room.players[0].id;
@@ -145,7 +145,7 @@ describe('four-player real-time server', () => {
     await host.request('create', { name: 'Bot demo', settings: DEFAULT_SETTINGS });
     await host.request('add-bot');
     await expect(host.request('trigger-hackathon')).rejects.toThrow('Start a round');
-    const room = application.store.data.rooms[host.state.room!.code];
+    const room = application.store.getRoom(host.state.room!.code)!;
     startRound(room, () => 0.9999);
     await host.request('chat', { message: 'Ready for the demo.' });
     const secondScreen = await connect('Alice', host.cookie);
@@ -162,7 +162,7 @@ describe('four-player real-time server', () => {
     expect(after.events.at(-1)?.moment).toBe('hackathon');
     expect(secondScreen.state.room!.events.at(-1)?.id).toBe(after.events.at(-1)?.id);
     expect(
-      application.store.data.rooms[room.code].used.filter((card) => card.kind === 'hackathon'),
+      application.store.getRoom(room.code)!.used.filter((card) => card.kind === 'hackathon'),
     ).toHaveLength(1);
     await expect(host.request('trigger-hackathon')).rejects.toThrow('already active');
   });
@@ -271,12 +271,12 @@ describe('four-player real-time server', () => {
     );
   });
 
-  it('persists round checkpoints, backfills older unfinished games and preserves already counted games', async () => {
+  it('persists round checkpoints so a restart never counts a round twice', async () => {
     await application.close();
     const directory = mkdtempSync(join(tmpdir(), 'jom-stats-'));
     try {
-      const dataFile = join(directory, 'game.json');
-      application = createApplication({ dataFile });
+      const databaseFile = join(directory, 'just-one-more.db');
+      application = createApplication({ databaseFile });
       await listen();
       const a = await connect('Alice');
       const b = await connect('Bob');
@@ -290,42 +290,12 @@ describe('four-player real-time server', () => {
       const stats = structuredClone(a.state.profile.stats);
       await application.close();
 
-      application = createApplication({ dataFile });
+      application = createApplication({ databaseFile });
       await listen();
-      let restored = await connect('Alice', a.cookie);
+      const restored = await connect('Alice', a.cookie);
       expect(restored.state.profile.stats).toEqual(stats);
       await restored.request('chat', { message: 'Still only one round.' });
       expect(restored.state.profile.stats).toEqual(stats);
-      await application.close();
-
-      // Simulate a pre-fix save: unfinished games had no recorded stats or checkpoint.
-      let legacy = JSON.parse(readFileSync(dataFile, 'utf8'));
-      delete legacy.recordedRounds;
-      for (const user of Object.values(legacy.users) as Profile[])
-        user.stats = { games: 0, wins: 0, rounds: 0, bestRound: 0, bestScore: 0 };
-      writeFileSync(dataFile, JSON.stringify(legacy));
-      application = createApplication({ dataFile });
-      await listen();
-      restored = await connect('Alice', a.cookie);
-      expect(restored.state.profile.stats).toEqual(stats);
-      await application.close();
-
-      // Older finished games already had round stats, so migration must not add them again.
-      legacy = JSON.parse(readFileSync(dataFile, 'utf8'));
-      delete legacy.recordedRounds;
-      const room = legacy.rooms[restored.state.room!.code];
-      room.phase = 'finished';
-      room.winnerId = a.state.profile.id;
-      legacy.completed.push(room.gameId);
-      legacy.users[a.state.profile.id].stats.games = 1;
-      legacy.users[a.state.profile.id].stats.wins = 1;
-      writeFileSync(dataFile, JSON.stringify(legacy));
-      application = createApplication({ dataFile });
-      await listen();
-      restored = await connect('Alice', a.cookie);
-      expect(restored.state.profile.stats).toEqual({ ...stats, games: 1, wins: 1 });
-      await restored.request('chat', { message: 'Migration does not count twice.' });
-      expect(restored.state.profile.stats).toEqual({ ...stats, games: 1, wins: 1 });
     } finally {
       await application.close();
       rmSync(directory, { recursive: true, force: true });
@@ -428,7 +398,7 @@ describe('four-player real-time server', () => {
     const code = a.state.room!.code;
     a.ws.close();
     await until(() => b.state.room!.hostId === b.state.profile.id);
-    expect(application.store.data.rooms[code].hostId).toBe(b.state.profile.id);
+    expect(application.store.getRoom(code)!.hostId).toBe(b.state.profile.id);
     await until(
       () =>
         b.state.room!.phase !== 'playing' ||
@@ -476,7 +446,7 @@ describe('four-player real-time server', () => {
     expect(user.profile.name).toBe('Ace Alice');
     expect(user.profile.theme).toBe('midnight');
     expect(user.profile.appearance).toBe('velvet');
-    const stored = application.store.data.users[user.profile.id];
+    const stored = application.store.getUser(user.profile.id)!;
     expect(stored.password).not.toBe('test-password-only');
     expect(stored.salt).toBeTruthy();
     const logout = await request('logout', {}, cookie);
@@ -565,34 +535,12 @@ describe('four-player real-time server', () => {
     );
     expect(invalid.status).toBe(400);
   });
-  it('loads older saved profiles with Neon Arcade while preserving their existing data', async () => {
-    await application.close();
-    const directory = mkdtempSync(join(tmpdir(), 'jom-theme-migration-'));
-    try {
-      const dataFile = join(directory, 'game.json');
-      application = createApplication({ dataFile });
-      await listen();
-      const a = await connect('Alice');
-      const original = structuredClone(a.state.profile);
-      await application.close();
-      const oldData = JSON.parse(readFileSync(dataFile, 'utf8'));
-      delete oldData.users[original.id].appearance;
-      writeFileSync(dataFile, JSON.stringify(oldData));
-      application = createApplication({ dataFile });
-      await listen();
-      const restored = await connect('Alice', a.cookie);
-      expect(restored.state.profile).toEqual(original);
-    } finally {
-      await application.close();
-      rmSync(directory, { recursive: true, force: true });
-    }
-  });
   it('persists sessions, rooms, used cards, and departed seats across a server restart', async () => {
     await application.close();
     const directory = mkdtempSync(join(tmpdir(), 'jom-test-'));
     try {
-      const dataFile = join(directory, 'game.json');
-      application = createApplication({ dataFile });
+      const databaseFile = join(directory, 'just-one-more.db');
+      application = createApplication({ databaseFile });
       await listen();
       const a = await connect('Alice');
       const b = await connect('Bob');
@@ -607,18 +555,18 @@ describe('four-player real-time server', () => {
       await a.request('start');
       const code = a.state.room!.code;
       await a.request('leave');
-      const before = structuredClone(application.store.data.rooms[code]);
+      const before = structuredClone(application.store.getRoom(code)!);
       // A bot may have inherited hosting while all humans were away.
-      application.store.data.rooms[code].hostId = 'missing-host';
+      application.store.getRoom(code)!.hostId = 'missing-host';
       await application.close();
-      application = createApplication({ dataFile });
+      application = createApplication({ databaseFile });
       await listen();
       const again = await connect('Bob', b.cookie);
       expect(again.state.profile.appearance).toBe('pop');
       expect(again.state.room!.code).toBe(code);
       expect(again.state.room!.round).toBe(before.round);
       expect(again.state.room!.hostId).toBe(again.state.profile.id);
-      expect(application.store.data.rooms[code].deck).toEqual(before.deck);
+      expect(application.store.getRoom(code)!.deck).toEqual(before.deck);
       const alice = await connect('Alice', a.cookie);
       expect(alice.state.room).toBeNull();
       await alice.request('join', { code });
@@ -635,7 +583,7 @@ describe('four-player real-time server', () => {
     const b = await connect('Bob');
     await a.request('create', { name: 'Keep it moving', settings: DEFAULT_SETTINGS });
     await b.request('join', { code: a.state.room!.code });
-    const room = application.store.data.rooms[a.state.room!.code];
+    const room = application.store.getRoom(a.state.room!.code)!;
     room.phase = 'playing';
     room.round = 1;
     room.turnId = a.state.profile.id;

@@ -35,12 +35,13 @@ Strengths to preserve: server-authoritative engine with crypto randomness, Zod v
 
 ## Progress
 
-| Phase | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ----- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | **Done** | C-01 … C-10 implemented. Additions: `docs/features.md` keeps the detailed feature list from the old README; `src/server/serve.ts` holds shared startup used by `dev.ts`, `index.ts`, and the e2e server; client-only packages (React, icons, fonts) moved to `devDependencies`; Node 24 LTS.                                                                                                                                                                                                         |
-| 1     | **Done** | T-01 … T-09 implemented. Deviations: tests are grouped as `unit`, `client` (jsdom: components and browser helpers), `integration`, `e2e`; TypeScript downgraded from 7.0 to 6.0 so `typescript-eslint` works (T-03); jsx-a11y uses the maintained `eslint-plugin-jsx-a11y-x` fork for ESLint 10. Existing hook/a11y findings are warnings with a ceiling (M-07). The axe scan found and fixed invalid `aria-label` uses; known color-contrast and scrollable-region findings are allowlisted (M-08). |
-| 2     | **Done** | H-01 … H-08 implemented. Configuration lives in `src/server/config.ts` (`TRUST_PROXY`, `COOKIE_SECURE`). In tunnel mode the app port is no longer published, so only the tunnel can reach the app and its forwarded headers are trusted. Cleanup runs with the 30-second heartbeat instead of hourly. WebSocket upgrades are also rate-limited per client IP.                                                                                                                                        |
-| 3–7   | Open     | Next: Phase 3 (SQLite).                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Phase | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | **Done** | C-01 … C-10 implemented. Additions: `docs/features.md` keeps the detailed feature list from the old README; `src/server/serve.ts` holds shared startup used by `dev.ts`, `index.ts`, and the e2e server; client-only packages (React, icons, fonts) moved to `devDependencies`; Node 24 LTS.                                                                                                                                                                                                                                                                                    |
+| 1     | **Done** | T-01 … T-09 implemented. Deviations: tests are grouped as `unit`, `client` (jsdom: components and browser helpers), `integration`, `e2e`; TypeScript downgraded from 7.0 to 6.0 so `typescript-eslint` works (T-03); jsx-a11y uses the maintained `eslint-plugin-jsx-a11y-x` fork for ESLint 10. Existing hook/a11y findings are warnings with a ceiling (M-07). The axe scan found and fixed invalid `aria-label` uses; known color-contrast and scrollable-region findings are allowlisted (M-08).                                                                            |
+| 2     | **Done** | H-01 … H-08 implemented. Configuration lives in `src/server/config.ts` (`TRUST_PROXY`, `COOKIE_SECURE`). In tunnel mode the app port is no longer published, so only the tunnel can reach the app and its forwarded headers are trusted. Cleanup runs with the 30-second heartbeat instead of hourly. WebSocket upgrades are also rate-limited per client IP.                                                                                                                                                                                                                   |
+| 3     | **Done** | D-01, D-02, D-04, D-06 implemented with `better-sqlite3` 13. D-01 and D-02 were done in one step: `Store` in `src/server/store.ts` is the only persistence API, with no JSON implementation left behind it. **D-03 skipped** (nothing is live, no data to import). **D-05 deferred** until the backup target is decided; backups are manual (see `docs/deployment.md`). `DATA_DIR` stays; the file is `just-one-more.db`. `.npmrc` sets `ignore-scripts=true` because npm 11 would otherwise rebuild better-sqlite3 with node-gyp instead of using its bundled prebuilt binary. |
+| 4–7   | Open     | Next: Phase 4 (real-time efficiency and observability).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ## 3. Guiding principles
 
@@ -303,63 +304,61 @@ flowchart LR
 
 **Recommendation:** `better-sqlite3`, unless `node:sqlite` is marked stable in the chosen Node LTS at implementation time. No ORM; plain SQL with a tiny migration runner.
 
-### 7.2 Schema (initial)
+### 7.2 Schema (as implemented)
+
+The schema version is tracked with `PRAGMA user_version`; migrations are an append-only list in `src/server/store.ts`. All tables are `STRICT`.
 
 ```sql
-CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
-
 CREATE TABLE users (
   id            TEXT PRIMARY KEY,
-  username      TEXT UNIQUE COLLATE NOCASE,
-  password_hash TEXT,
-  salt          TEXT,
   name          TEXT NOT NULL,
   color         TEXT NOT NULL,
   theme         TEXT NOT NULL,
   appearance    TEXT NOT NULL,
   account       INTEGER NOT NULL DEFAULT 0,
+  username      TEXT UNIQUE COLLATE NOCASE,
+  password_hash TEXT,
+  salt          TEXT,
   games         INTEGER NOT NULL DEFAULT 0,
   wins          INTEGER NOT NULL DEFAULT 0,
   best_score    INTEGER NOT NULL DEFAULT 0,
   rounds        INTEGER NOT NULL DEFAULT 0,
   best_round    INTEGER NOT NULL DEFAULT 0,
-  created_at    INTEGER NOT NULL,
-  last_seen_at  INTEGER NOT NULL
-);
+  created_at    INTEGER NOT NULL
+) STRICT;
 
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at INTEGER NOT NULL
-);
-CREATE INDEX sessions_expires ON sessions(expires_at);
-CREATE INDEX sessions_user ON sessions(user_id);
+) STRICT;
+CREATE INDEX sessions_expires_at ON sessions(expires_at);
+CREATE INDEX sessions_user_id ON sessions(user_id);
 
 CREATE TABLE rooms (
   code       TEXT PRIMARY KEY,
   game_id    TEXT NOT NULL,
-  is_public  INTEGER NOT NULL,
-  phase      TEXT NOT NULL,
   state      TEXT NOT NULL,          -- JSON of the full Room; engine stays unchanged
   updated_at INTEGER NOT NULL
-);
-CREATE INDEX rooms_updated ON rooms(updated_at);
+) STRICT;
 
 CREATE TABLE game_progress (
   game_id        TEXT PRIMARY KEY,
-  recorded_round INTEGER NOT NULL,
-  completed      INTEGER NOT NULL DEFAULT 0,
-  updated_at     INTEGER NOT NULL
-);
+  recorded_round INTEGER NOT NULL DEFAULT 0,
+  completed      INTEGER NOT NULL DEFAULT 0
+) STRICT;
 ```
+
+Compared with the first draft: no `schema_migrations` table (`user_version` is enough), no `last_seen_at` (a guest without a session can never sign in again, so retention does not need it), and no denormalized room columns (active rooms are read from the in-memory cache).
 
 ### 7.3 Runtime model
 
-- Pragmas: `journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout`.
-- Active rooms stay in an in-memory cache (single process = authoritative); every committed command writes the room row **and** stat updates in one transaction.
-- Room state is stored as JSON to keep `src/shared/engine.ts` untouched; searchable columns (`phase`, `is_public`, `updated_at`) are denormalized.
-- Configuration: `DATABASE_FILE` (default `./data/just-one-more.db`). Docker volume stays at `/app/data`.
-- Backups: `VACUUM INTO` to a timestamped file; host-level job copies backups off-site.
+- Pragmas: `journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`.
+- Active rooms stay in an in-memory cache (single process = authoritative); every committed command writes the room row **and** stat updates in one transaction. Users and sessions are queried on demand.
+- Room state is stored as JSON to keep `src/shared/engine.ts` untouched.
+- Retention (D-04) runs with the heartbeat: expired sessions; guests without a session that hold no seat; rooms idle for 24 hours with nobody connected; `game_progress` rows of games without a room.
+- Configuration: `DATA_DIR` (default `./data`) holds `just-one-more.db`. Docker volume stays at `/app/data`. Tests use `:memory:`.
+- Backups (D-05, deferred): candidates are `VACUUM INTO` or the better-sqlite3 online backup API to a timestamped file, then a host-level job copies it off-site. The target location is still open (§10).
 
 ## 8. Hosting plan
 
@@ -386,7 +385,7 @@ Quick Tunnel remains the documented path for short tests (`compose.tunnel.yaml`)
 
 ## 10. Open questions
 
-1. SQLite driver: confirm `better-sqlite3` vs `node:sqlite` at implementation time.
+1. ~~SQLite driver~~: `better-sqlite3` (decided in Phase 3). Open instead: where should scheduled backups go (D-05)?
 2. Hosting provider, budget ceiling, and domain name.
 3. Upgrade the runtime from Node 22 to the current Node LTS as part of C-09 (and pin it in `.nvmrc`)?
 4. Who is named in the Impressum (one team member) and which contact address is used?

@@ -97,7 +97,8 @@ function clientErrorStatus(error: unknown) {
 }
 
 export interface ApplicationOptions {
-  dataFile?: string;
+  // Omitted in tests: an in-memory database that disappears on close.
+  databaseFile?: string;
   botDelay?: number;
   disconnectDelay?: number;
   // Tests inject a seeded generator; production always uses the crypto source.
@@ -111,7 +112,7 @@ export interface ApplicationOptions {
 
 export function createApplication(options: ApplicationOptions = {}) {
   const random = options.random ?? secureRandom;
-  const store = new Store(options.dataFile);
+  const store = new Store(options.databaseFile);
   const app = express();
   const server = createServer(app);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 8192 });
@@ -156,16 +157,16 @@ export function createApplication(options: ApplicationOptions = {}) {
   }
   function userFor(req: { headers: { cookie?: string } }): User | undefined {
     const token = cookieToken(req);
-    const session = token && store.data.sessions[hash(token)];
-    return session && session.expires > Date.now() ? store.data.users[session.userId] : undefined;
+    const session = token ? store.getSession(hash(token)) : undefined;
+    return session && session.expires > Date.now() ? store.getUser(session.userId) : undefined;
   }
   function roomFor(id: string) {
-    return Object.values(store.data.rooms).find(
+    return [...store.rooms()].find(
       (r) => r.players.some((p) => p.id === id) && !r.departedIds.includes(id),
     );
   }
   function summary(): RoomSummary[] {
-    return Object.values(store.data.rooms)
+    return [...store.rooms()]
       .filter((r) => r.settings.isPublic && r.phase !== 'finished')
       .map((r) => ({
         code: r.code,
@@ -182,17 +183,22 @@ export function createApplication(options: ApplicationOptions = {}) {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(value));
   }
   function stateFor(userId: string, rooms = summary()) {
+    const user = store.getUser(userId);
+    if (!user) return undefined;
     const room = roomFor(userId);
     return {
       type: 'state',
-      profile: publicProfile(store.data.users[userId]),
+      profile: publicProfile(user),
       rooms,
       room: room ? toPublicRoom(room) : null,
     };
   }
   function broadcast() {
     const rooms = summary();
-    for (const [ws, client] of clients) send(ws, stateFor(client.userId, rooms));
+    for (const [ws, client] of clients) {
+      const state = stateFor(client.userId, rooms);
+      if (state) send(ws, state);
+    }
   }
   function connected(id: string) {
     return [...clients.values()].some((c) => c.userId === id);
@@ -201,9 +207,12 @@ export function createApplication(options: ApplicationOptions = {}) {
     if (room) {
       room.version++;
       room.updatedAt = Date.now();
-      store.recordResults(room);
+      store.transaction(() => {
+        // A room that was just closed is no longer cached and must not be written back.
+        if (store.getRoom(room.code) === room) store.saveRoom(room);
+        store.recordResults(room);
+      });
     }
-    store.save();
     broadcast();
     if (room) schedule(room);
   }
@@ -245,7 +254,8 @@ export function createApplication(options: ApplicationOptions = {}) {
         () => {
           timers.delete(room.code);
           try {
-            const latest = store.data.rooms[room.code];
+            const latest = store.getRoom(room.code);
+            if (!latest) return;
             const action: GameAction =
               !actor.bot && (!latest.prompt || latest.prompt.kind === 'bank')
                 ? { type: 'bank', roulette: false }
@@ -256,7 +266,7 @@ export function createApplication(options: ApplicationOptions = {}) {
                 `${actor.name} is disconnected. An automatic choice keeps the table moving.`,
               );
             const next = applyAction(latest, actor.id, action, random);
-            store.data.rooms[room.code] = next;
+            store.setRoom(next);
             commit(next);
           } catch (error) {
             console.error('Automatic action failed:', error);
@@ -276,7 +286,7 @@ export function createApplication(options: ApplicationOptions = {}) {
   }
   function setSession(req: Request, res: express.Response, userId: string) {
     const token = randomBytes(32).toString('hex');
-    store.data.sessions[hash(token)] = { userId, expires: Date.now() + SESSION_TTL };
+    store.createSession(hash(token), userId, Date.now() + SESSION_TTL);
     res.cookie('jom_session', token, { ...cookieOptions(req), maxAge: SESSION_TTL });
   }
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -310,9 +320,10 @@ export function createApplication(options: ApplicationOptions = {}) {
       account: false,
       stats: { games: 0, wins: 0, bestScore: 0, rounds: 0, bestRound: 0 },
     };
-    store.data.users[user.id] = user;
-    setSession(req, res, user.id);
-    store.save();
+    store.transaction(() => {
+      store.insertUser(user);
+      setSession(req, res, user.id);
+    });
     res.json({ profile: publicProfile(user) });
   });
   app.post('/api/profile', (req, res) => {
@@ -329,6 +340,7 @@ export function createApplication(options: ApplicationOptions = {}) {
     if (!parsed.success)
       return res.status(400).json({ error: 'Check your nickname and appearance settings.' });
     Object.assign(user, parsed.data);
+    store.updateUser(user);
     const room = roomFor(user.id);
     const player = room?.players.find((p) => p.id === user.id);
     if (player) {
@@ -358,7 +370,7 @@ export function createApplication(options: ApplicationOptions = {}) {
           error: 'Use a 3–24 character username and a password of at least 8 characters.',
         });
       const username = parsed.data.username.toLowerCase();
-      const existing = Object.values(store.data.users).find((u) => u.username === username);
+      const existing = store.findUserByUsername(username);
       const current = userFor(req);
       if (current && roomFor(current.id))
         return res.status(409).json({ error: 'Leave your table before changing accounts.' });
@@ -369,10 +381,11 @@ export function createApplication(options: ApplicationOptions = {}) {
         if (existing) return res.status(409).json({ error: 'That username is already taken.' });
         const salt = randomBytes(16).toString('hex');
         const password = ((await derive(parsed.data.password, salt, 64)) as Buffer).toString('hex');
-        if (Object.values(store.data.users).some((u) => u.username === username))
+        if (store.findUserByUsername(username))
           return res.status(409).json({ error: 'That username is already taken.' });
         user = current;
         Object.assign(user, { account: true, username, salt, password });
+        store.updateUser(user);
       } else if (req.params.mode === 'login') {
         const result = (await derive(
           parsed.data.password,
@@ -384,13 +397,13 @@ export function createApplication(options: ApplicationOptions = {}) {
         user = existing;
       } else return res.status(404).json({ error: 'Unknown account action.' });
       const previous = cookieToken(req);
-      if (previous) {
-        delete store.data.sessions[hash(previous)];
+      store.transaction(() => {
+        if (previous) store.deleteSession(hash(previous));
+        setSession(req, res, user.id);
+      });
+      if (previous)
         for (const [ws, c] of clients)
           if (c.tokenHash === hash(previous)) ws.close(4001, 'Session changed');
-      }
-      setSession(req, res, user.id);
-      store.save();
       res.json({ profile: publicProfile(user) });
     } catch (error) {
       console.error('Account operation failed:', error);
@@ -403,11 +416,10 @@ export function createApplication(options: ApplicationOptions = {}) {
       return res.status(409).json({ error: 'Leave your table before signing out.' });
     const token = cookieToken(req);
     if (token) {
-      delete store.data.sessions[hash(token)];
+      store.deleteSession(hash(token));
       for (const [ws, c] of clients) if (c.tokenHash === hash(token)) ws.close(4001, 'Signed out');
     }
     res.clearCookie('jom_session', cookieOptions(req));
-    store.save();
     res.json({ ok: true });
   });
   function requireHost(room: Room, id: string) {
@@ -417,8 +429,7 @@ export function createApplication(options: ApplicationOptions = {}) {
     let room = roomFor(user.id);
     if (type === 'create') {
       if (room) throw new Error('Leave your current table before creating another.');
-      if (Object.keys(store.data.rooms).length >= 100)
-        throw new Error('The server is full. Please try again later.');
+      if (store.roomCount() >= 100) throw new Error('The server is full. Please try again later.');
       const settings = settingsSchema.parse(payload.settings ?? DEFAULT_SETTINGS);
       const name = z.string().trim().min(2).max(40).parse(payload.name);
       let code: string;
@@ -427,9 +438,9 @@ export function createApplication(options: ApplicationOptions = {}) {
           { length: 5 },
           () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[randomInt(31)],
         ).join('');
-      } while (store.data.rooms[code]);
+      } while (store.getRoom(code));
       room = createRoom(code, name, makePlayer(user.id, user.name, user.color), settings);
-      store.data.rooms[code] = room;
+      store.setRoom(room);
       log(room, `${user.name} opened the table.`);
       commit(room);
       return;
@@ -441,7 +452,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         .toUpperCase()
         .regex(/^[A-Z2-9]{5}$/)
         .parse(payload.code);
-      const target = store.data.rooms[code];
+      const target = store.getRoom(code);
       if (!target) throw new Error('No table with that code. Check it and try again.');
       if (room && room.code !== code)
         throw new Error('Leave your current table before joining another.');
@@ -479,7 +490,7 @@ export function createApplication(options: ApplicationOptions = {}) {
       if (!room.players.some((p) => !p.bot && !room!.departedIds.includes(p.id))) {
         const timer = timers.get(room.code);
         if (timer) clearTimeout(timer);
-        delete store.data.rooms[room.code];
+        store.removeRoom(room.code);
       }
       commit(room);
       return;
@@ -541,7 +552,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         .map((p) => makePlayer(p.id, p.name, p.color, p.bot));
       next.version = room.version;
       room = next;
-      store.data.rooms[room.code] = room;
+      store.setRoom(room);
     } else if (type === 'trigger-hackathon') {
       requireHost(room, user.id);
       if (!isSoloBotRoom(room))
@@ -553,12 +564,12 @@ export function createApplication(options: ApplicationOptions = {}) {
         room.players.find((player) => player.status === 'active');
       if (!drawer) throw new Error('No active player can receive the card.');
       room = triggerHackathon(room, drawer.id);
-      store.data.rooms[room.code] = room;
+      store.setRoom(room);
     } else if (type === 'action') {
       if (version !== room.version)
         throw new Error('The table just changed. Your view is refreshed; please try again.');
       room = applyAction(room, user.id, actionSchema.parse(payload.action), random);
-      store.data.rooms[room.code] = room;
+      store.setRoom(room);
     } else throw new Error('Unknown table action.');
     commit(room);
   }
@@ -600,8 +611,10 @@ export function createApplication(options: ApplicationOptions = {}) {
           let requestId = '';
           try {
             const client = clients.get(ws)!;
-            const session = store.data.sessions[client.tokenHash];
-            if (!session || session.expires <= Date.now()) {
+            const session = store.getSession(client.tokenHash);
+            // Re-read the user so profile changes made over HTTP apply to table actions.
+            const current = session && session.expires > Date.now() && store.getUser(user.id);
+            if (!current) {
               ws.close(4001, 'Session expired');
               return;
             }
@@ -625,7 +638,7 @@ export function createApplication(options: ApplicationOptions = {}) {
               send(ws, { type: 'ack', id: msg.id });
               return;
             }
-            handle(user, msg.type, msg.payload, msg.version);
+            handle(current, msg.type, msg.payload, msg.version);
             seen.add(msg.id);
             if (seen.size > 512) seen.delete(seen.values().next().value!);
             send(ws, { type: 'ack', id: msg.id });
@@ -640,7 +653,8 @@ export function createApplication(options: ApplicationOptions = {}) {
                     ? error.message
                     : 'Something went wrong.',
             });
-            send(ws, stateFor(user.id));
+            const state = stateFor(user.id);
+            if (state) send(ws, state);
           }
         });
         ws.on('close', () => {
@@ -664,25 +678,24 @@ export function createApplication(options: ApplicationOptions = {}) {
   function cleanup(now = Date.now()) {
     for (const [key, value] of limits) if (value.reset < now) limits.delete(key);
     let changed = false;
-    for (const [tokenHash, session] of Object.entries(store.data.sessions))
-      if (session.expires <= now) {
-        delete store.data.sessions[tokenHash];
-        changed = true;
-      }
-    for (const [ws, c] of clients)
-      if (!store.data.sessions[c.tokenHash]) ws.close(4001, 'Session expired');
-    for (const room of Object.values(store.data.rooms))
+    for (const room of [...store.rooms()])
       if (room.updatedAt < now - ROOM_TTL && !room.players.some((p) => !p.bot && connected(p.id))) {
         clearTimeout(timers.get(room.code));
         timers.delete(room.code);
         timerKeys.delete(room.code);
-        delete store.data.rooms[room.code];
+        store.removeRoom(room.code);
         changed = true;
       }
-    if (changed) {
-      store.save();
-      broadcast();
+    const seated = new Set<string>();
+    const games = new Set<string>();
+    for (const room of store.rooms()) {
+      games.add(room.gameId);
+      for (const p of room.players) seated.add(p.id);
     }
+    store.prune(now, seated, games);
+    for (const [ws, c] of clients)
+      if (!store.getSession(c.tokenHash)) ws.close(4001, 'Session expired');
+    if (changed) broadcast();
   }
   const heartbeat = setInterval(() => {
     for (const [ws, c] of clients) {
@@ -712,8 +725,8 @@ export function createApplication(options: ApplicationOptions = {}) {
     for (const timer of timers.values()) clearTimeout(timer);
     for (const ws of clients.keys()) ws.terminate();
     wss.close();
-    store.save();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+    store.close();
   }
   return { app, server, store, close, cleanup };
 }
