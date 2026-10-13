@@ -10,8 +10,8 @@
     "test:watch": "vitest",
     "check": "tsc -b && vitest run",
     "test:integration": "vitest run --project integration",
-    "format": "prettier --write src tests docs README.md *.ts *.json index.html",
-    "format:check": "prettier --check src tests docs README.md *.ts *.json index.html",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "typecheck": "tsc -b",
     "test:unit": "vitest run --project unit",
     "test:client": "vitest run --project client"
@@ -60,6 +60,6 @@
   },
   "private": true,
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.0.0"
   }
 }
