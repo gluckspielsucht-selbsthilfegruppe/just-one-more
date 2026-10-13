@@ -9,6 +9,7 @@
     "react/rules-of-hooks": "error",
     "react/react-in-jsx-scope": "off",
     "typescript/no-explicit-any": "error",
+    "oxc/no-async-endpoint-handlers": "off",
     "react/exhaustive-deps": "warn",
     "react/refs": "warn",
     "react/set-state-in-effect": "warn",

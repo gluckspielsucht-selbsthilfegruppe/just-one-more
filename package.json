@@ -16,7 +16,7 @@
     "test:unit": "vitest run --project unit",
     "test:client": "vitest run --project client",
     "test:coverage": "vitest run --coverage",
-    "lint": "oxlint --max-warnings 101"
+    "lint": "oxlint --max-warnings 100"
   },
   "repository": {
     "type": "git",
