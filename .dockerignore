@@ -2,9 +2,8 @@
 **
 !package.json
 !package-lock.json
-!tsconfig.json
+!tsconfig*.json
 !vite.config.ts
-!vitest.config.ts
 !index.html
 !public/
 !public/**
