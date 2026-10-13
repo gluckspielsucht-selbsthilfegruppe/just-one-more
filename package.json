@@ -17,7 +17,8 @@
     "test:client": "vitest run --project client",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --max-warnings 28",
-    "test:e2e": "npm run build && playwright test"
+    "test:e2e": "npm run build && playwright test",
+    "test:load": "k6 run tests/load/tables.js"
   },
   "repository": {
     "type": "git",
