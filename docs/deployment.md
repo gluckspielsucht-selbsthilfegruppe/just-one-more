@@ -7,7 +7,7 @@ The app is one Node.js process serving HTTP and WebSockets on a single port. It 
 | Variable        | Default  | Purpose                                                                                                                                                                                                                                    |
 | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `PORT`          | `3000`   | HTTP and WebSocket port.                                                                                                                                                                                                                   |
-| `DATA_DIR`      | `./data` | Directory containing the atomic `game.json` snapshot.                                                                                                                                                                                      |
+| `DATA_DIR`      | `./data` | Directory containing the SQLite database `just-one-more.db` (plus its `-wal`/`-shm` files while running).                                                                                                                                  |
 | `TRUST_PROXY`   | (unset)  | Which proxies may supply the client IP and protocol via `X-Forwarded-For`/`X-Forwarded-Proto`. Same values as Express `trust proxy`: a hop count (`1`), or addresses/subnets (`loopback`, `uniquelocal`, `10.0.0.1`). Unset trusts nobody. |
 | `COOKIE_SECURE` | (unset)  | Unset: session cookies are `Secure` when the request is HTTPS (directly or via a trusted proxy). `true`/`false` force the flag.                                                                                                            |
 
@@ -18,7 +18,7 @@ Only set `TRUST_PROXY` when clients cannot reach the app except through that pro
 ## Health checks
 
 - `GET /api/health`: liveness; the process answers.
-- `GET /api/ready`: readiness; `200` when the data directory is writable, `503` otherwise. The Docker image uses this check.
+- `GET /api/ready`: readiness; `200` when the database answers and its file is writable, `503` otherwise. The Docker image uses this check.
 
 ## Run with Node.js
 
@@ -56,16 +56,16 @@ The `Dockerfile` has two stages (build, runtime), so it also works on hosts that
 
 Games, accounts, and sessions persist in the Compose-managed `game-data` volume mounted at `/app/data` (or in `DATA_DIR` when running with Node.js). Rebuilds and container replacement retain this data. **`docker compose down --volumes` deletes it.** Run **one server process per data directory**.
 
-The snapshot contains rooms, accounts, hashed passwords, profile statistics, and hashed session tokens. Treat backups as private. To back up, stop the app before copying:
+The database contains rooms, accounts, hashed passwords, profile statistics, and hashed session tokens. Treat backups as private. There is no scheduled backup yet; to back up, stop the app so the database is checkpointed into a single file, then copy it:
 
 ```sh
-mkdir -p data
+mkdir -p backups
 docker compose stop app
-docker compose cp app:/app/data/game.json ./data/game-backup.json
+docker compose cp app:/app/data/just-one-more.db ./backups/just-one-more-$(date +%F).db
 docker compose start app
 ```
 
-Restoring the file restores games and profiles. If the snapshot cannot be read on startup (invalid JSON or an unexpected structure), the server renames it to `game.json.corrupt-<timestamp>`, logs an error, and starts with empty data, so the original can still be inspected or restored. Expired sessions and rooms without activity for 24 hours are removed automatically.
+To restore, stop the app, copy the backup to `/app/data/just-one-more.db` (with `docker compose cp`), remove any `just-one-more.db-wal` and `-shm` files next to it, and start the app. If the file cannot be opened as a database on startup, the server renames it to `just-one-more.db.corrupt-<timestamp>`, logs an error, and starts with empty data, so the original can still be inspected or restored. Retention runs automatically: expired sessions, guest profiles that can no longer sign in, and rooms without activity for 24 hours are removed (see [architecture.md](architecture.md#persistence)).
 
 ## Play over the internet with a Quick Tunnel
 
