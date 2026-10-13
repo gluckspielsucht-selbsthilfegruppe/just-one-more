@@ -65,8 +65,10 @@ Room mutations are synchronous in one process. Committed snapshots are written t
 
 ## Sessions, security, and disconnects
 
-- Sessions use random 256-bit bearer cookies (HttpOnly, SameSite=Strict, `Secure` behind HTTPS) that last 30 days; only their SHA-256 hashes are stored. Passwords are salted with scrypt and never returned to browsers.
-- State-changing HTTP requests and WebSocket upgrades from other origins are rejected. Zod validates every external input. Oversized messages, invalid commands, and command bursts are bounded or rejected.
+- Sessions use random 256-bit bearer cookies (HttpOnly, SameSite=Strict, `Secure` on HTTPS) that last 30 days; only their SHA-256 hashes are stored. Expired sessions are removed periodically and their sockets closed. Passwords are salted with scrypt and never returned to browsers.
+- State-changing HTTP requests and WebSocket upgrades from other origins, including `null` or malformed origins, are rejected. Zod validates every external input. Oversized messages, invalid commands, and command bursts are bounded or rejected; client errors return 4xx, unexpected failures 500 without details.
+- Responses carry a strict Content-Security-Policy (self-hosted scripts, styles, fonts, and connections only), `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `Permissions-Policy`, `X-Frame-Options`, and HSTS on HTTPS. The development server disables the CSP because Vite injects inline scripts.
+- Rate limits (guest creation, sign-in, WebSocket upgrades, commands) use the client IP. Behind a proxy, `TRUST_PROXY` decides whose forwarded IP and protocol are believed.
 - Human sessions have a WebSocket heartbeat. When a player disconnects, their current decision gets a 30-second grace period; if other humans remain, an automatic safe bank or legal special-card choice keeps play moving. The seat stays available to reconnect. A table with no connected humans pauses.
 - A departing host passes control to another human; a returning human can reclaim host control from a bot. Explicitly leaving an ongoing table is remembered across restarts, and the same player can rejoin with its code. If everyone explicitly leaves, the room closes. Unoccupied rooms expire after 24 hours of inactivity.
 
