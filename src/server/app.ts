@@ -1,5 +1,5 @@
 import express, { type Request } from 'express';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage } from 'node:http';
 import {
   createHash,
   randomBytes,
@@ -9,6 +9,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
+import proxyAddr from 'proxy-addr';
 import { WebSocket, WebSocketServer } from 'ws';
 import { z } from 'zod';
 import {
@@ -33,10 +34,27 @@ import {
   type RoomSummary,
 } from '../shared/types';
 import { Store, type User } from './store';
+import type { TrustProxy } from './config';
 
 const derive = promisify(scrypt);
 const secureRandom = () => randomInt(0, 0x100000000) / 0x100000000;
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+const SESSION_TTL = 30 * 86400000;
+const ROOM_TTL = 86400000;
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+const PERMISSIONS_POLICY =
+  'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)';
 const cleanName = z
   .string()
   .trim()
@@ -66,6 +84,17 @@ function cookieToken(req: { headers: { cookie?: string } }) {
     .find((s) => s.startsWith('jom_session='))
     ?.slice(12);
 }
+function sameOrigin(origin: string | undefined, host: string | undefined) {
+  try {
+    return !!origin && new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+function clientErrorStatus(error: unknown) {
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;
+}
 
 export interface ApplicationOptions {
   dataFile?: string;
@@ -73,6 +102,11 @@ export interface ApplicationOptions {
   disconnectDelay?: number;
   // Tests inject a seeded generator; production always uses the crypto source.
   random?: Random;
+  trustProxy?: TrustProxy;
+  // Undefined derives the Secure flag from the request (HTTPS directly or via a trusted proxy).
+  cookieSecure?: boolean;
+  // Vite's development server needs inline scripts, so dev disables the policy.
+  contentSecurityPolicy?: boolean;
 }
 
 export function createApplication(options: ApplicationOptions = {}) {
@@ -88,20 +122,30 @@ export function createApplication(options: ApplicationOptions = {}) {
   const limits = new Map<string, { count: number; reset: number }>();
   let closing = false;
   app.disable('x-powered-by');
-  app.use(express.json({ limit: '8kb' }));
+  app.set('trust proxy', options.trustProxy ?? false);
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+    if (options.contentSecurityPolicy !== false)
+      res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+    if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
     if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
     if (
       req.method !== 'GET' &&
-      req.headers.origin &&
-      new URL(req.headers.origin).host !== req.headers.host
+      req.headers.origin !== undefined &&
+      !sameOrigin(req.headers.origin, req.headers.host)
     )
       return res.status(403).json({ error: 'Cross-origin requests are not allowed.' });
     next();
   });
+  app.use(express.json({ limit: '8kb' }));
+  function clientIp(req: IncomingMessage) {
+    return proxyAddr(req, app.get('trust proxy fn'));
+  }
   function allow(key: string, max: number, duration = 60000) {
     const current = limits.get(key);
     if (!current || current.reset <= Date.now()) {
@@ -137,18 +181,18 @@ export function createApplication(options: ApplicationOptions = {}) {
   function send(ws: WebSocket, value: unknown) {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(value));
   }
+  function stateFor(userId: string, rooms = summary()) {
+    const room = roomFor(userId);
+    return {
+      type: 'state',
+      profile: publicProfile(store.data.users[userId]),
+      rooms,
+      room: room ? toPublicRoom(room) : null,
+    };
+  }
   function broadcast() {
     const rooms = summary();
-    for (const [ws, client] of clients) {
-      const user = store.data.users[client.userId];
-      const room = roomFor(client.userId);
-      send(ws, {
-        type: 'state',
-        profile: publicProfile(user),
-        rooms,
-        room: room ? toPublicRoom(room) : null,
-      });
-    }
+    for (const [ws, client] of clients) send(ws, stateFor(client.userId, rooms));
   }
   function connected(id: string) {
     return [...clients.values()].some((c) => c.userId === id);
@@ -222,18 +266,24 @@ export function createApplication(options: ApplicationOptions = {}) {
       ),
     );
   }
-  function setSession(res: express.Response, userId: string) {
-    const token = randomBytes(32).toString('hex');
-    store.data.sessions[hash(token)] = { userId, expires: Date.now() + 30 * 86400000 };
-    res.cookie('jom_session', token, {
+  function cookieOptions(req: Request) {
+    return {
       httpOnly: true,
-      sameSite: 'strict',
-      secure: process.env.COOKIE_SECURE === 'true',
-      maxAge: 30 * 86400000,
+      sameSite: 'strict' as const,
+      secure: options.cookieSecure ?? req.secure,
       path: '/',
-    });
+    };
+  }
+  function setSession(req: Request, res: express.Response, userId: string) {
+    const token = randomBytes(32).toString('hex');
+    store.data.sessions[hash(token)] = { userId, expires: Date.now() + SESSION_TTL };
+    res.cookie('jom_session', token, { ...cookieOptions(req), maxAge: SESSION_TTL });
   }
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  app.get('/api/ready', async (_req, res) => {
+    const ready = await store.writable();
+    res.status(ready ? 200 : 503).json({ ok: ready });
+  });
   app.get('/api/bootstrap', (req, res) => {
     const user = userFor(req);
     const room = user && roomFor(user.id);
@@ -246,7 +296,7 @@ export function createApplication(options: ApplicationOptions = {}) {
   app.post('/api/session', (req, res) => {
     const existing = userFor(req);
     if (existing) return res.json({ profile: publicProfile(existing) });
-    if (!allow(`guest:${req.socket.remoteAddress}`, 60))
+    if (!allow(`guest:${clientIp(req)}`, 60))
       return res.status(429).json({ error: 'Too many profiles. Try again in a minute.' });
     const name = cleanName.safeParse(req.body.name);
     if (!name.success)
@@ -261,7 +311,7 @@ export function createApplication(options: ApplicationOptions = {}) {
       stats: { games: 0, wins: 0, bestScore: 0, rounds: 0, bestRound: 0 },
     };
     store.data.users[user.id] = user;
-    setSession(res, user.id);
+    setSession(req, res, user.id);
     store.save();
     res.json({ profile: publicProfile(user) });
   });
@@ -290,7 +340,7 @@ export function createApplication(options: ApplicationOptions = {}) {
   });
   app.post('/api/auth/:mode', async (req, res) => {
     try {
-      if (!allow(`auth:${req.socket.remoteAddress}`, 10))
+      if (!allow(`auth:${clientIp(req)}`, 10))
         return res.status(429).json({ error: 'Too many attempts. Try again in a minute.' });
       const parsed = z
         .object({
@@ -339,7 +389,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         for (const [ws, c] of clients)
           if (c.tokenHash === hash(previous)) ws.close(4001, 'Session changed');
       }
-      setSession(res, user.id);
+      setSession(req, res, user.id);
       store.save();
       res.json({ profile: publicProfile(user) });
     } catch (error) {
@@ -356,7 +406,7 @@ export function createApplication(options: ApplicationOptions = {}) {
       delete store.data.sessions[hash(token)];
       for (const [ws, c] of clients) if (c.tokenHash === hash(token)) ws.close(4001, 'Signed out');
     }
-    res.clearCookie('jom_session', { path: '/' });
+    res.clearCookie('jom_session', cookieOptions(req));
     store.save();
     res.json({ ok: true });
   });
@@ -515,7 +565,12 @@ export function createApplication(options: ApplicationOptions = {}) {
   server.on('upgrade', (req, socket, head) => {
     if (req.url !== '/ws') return;
     try {
-      if (!req.headers.origin || new URL(req.headers.origin).host !== req.headers.host) {
+      if (!sameOrigin(req.headers.origin, req.headers.host)) {
+        socket.destroy();
+        return;
+      }
+      if (!allow(`upgrade:${clientIp(req)}`, 120)) {
+        socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
         socket.destroy();
         return;
       }
@@ -585,7 +640,7 @@ export function createApplication(options: ApplicationOptions = {}) {
                     ? error.message
                     : 'Something went wrong.',
             });
-            broadcast();
+            send(ws, stateFor(user.id));
           }
         });
         ws.on('close', () => {
@@ -606,6 +661,29 @@ export function createApplication(options: ApplicationOptions = {}) {
       socket.destroy();
     }
   });
+  function cleanup(now = Date.now()) {
+    for (const [key, value] of limits) if (value.reset < now) limits.delete(key);
+    let changed = false;
+    for (const [tokenHash, session] of Object.entries(store.data.sessions))
+      if (session.expires <= now) {
+        delete store.data.sessions[tokenHash];
+        changed = true;
+      }
+    for (const [ws, c] of clients)
+      if (!store.data.sessions[c.tokenHash]) ws.close(4001, 'Session expired');
+    for (const room of Object.values(store.data.rooms))
+      if (room.updatedAt < now - ROOM_TTL && !room.players.some((p) => !p.bot && connected(p.id))) {
+        clearTimeout(timers.get(room.code));
+        timers.delete(room.code);
+        timerKeys.delete(room.code);
+        delete store.data.rooms[room.code];
+        changed = true;
+      }
+    if (changed) {
+      store.save();
+      broadcast();
+    }
+  }
   const heartbeat = setInterval(() => {
     for (const [ws, c] of clients) {
       if (!c.alive) ws.terminate();
@@ -614,19 +692,19 @@ export function createApplication(options: ApplicationOptions = {}) {
         ws.ping();
       }
     }
-    for (const [key, value] of limits) if (value.reset < Date.now()) limits.delete(key);
-    for (const room of Object.values(store.data.rooms))
-      if (
-        room.updatedAt < Date.now() - 86400000 &&
-        !room.players.some((p) => !p.bot && connected(p.id))
-      )
-        delete store.data.rooms[room.code];
+    cleanup();
   }, 30000);
   heartbeat.unref();
   app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
   app.use((error: unknown, _req: Request, res: express.Response, _next: express.NextFunction) => {
+    const status = clientErrorStatus(error);
+    if (status)
+      return res.status(status).json({
+        error:
+          status === 413 ? 'That request is too large.' : 'The request could not be processed.',
+      });
     console.error(error);
-    res.status(400).json({ error: 'The request could not be processed.' });
+    res.status(500).json({ error: 'Something went wrong on our side. Please try again.' });
   });
   async function close() {
     closing = true;
@@ -637,5 +715,5 @@ export function createApplication(options: ApplicationOptions = {}) {
     store.save();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
-  return { app, server, store, close };
+  return { app, server, store, close, cleanup };
 }
