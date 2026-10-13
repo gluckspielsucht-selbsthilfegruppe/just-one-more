@@ -1,0 +1,44 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      server:
+        patterns: ['express', 'ws', 'zod', '@types/express', '@types/ws']
+      tooling:
+        patterns:
+          - 'vite'
+          - 'vitest'
+          - '@vitest/*'
+          - '@vitejs/*'
+          - '@playwright/test'
+          - '@axe-core/*'
+          - '@testing-library/*'
+          - 'jsdom'
+          - 'eslint'
+          - '@eslint/*'
+          - 'eslint-plugin-*'
+          - '@vitest/eslint-plugin'
+          - 'typescript-eslint'
+          - 'globals'
+          - 'prettier'
+          - 'typescript'
+          - 'tsx'
+          - '@types/node'
+      fonts-and-icons:
+        patterns: ['@fontsource/*', '@fontsource-variable/*', 'lucide-react']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
