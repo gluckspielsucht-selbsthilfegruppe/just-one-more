@@ -4,7 +4,7 @@ export type TrustProxy = boolean | number | string;
 
 export interface ServerConfig {
   port: number;
-  dataFile: string;
+  databaseFile: string;
   trustProxy: TrustProxy;
   cookieSecure?: boolean;
 }
@@ -27,7 +27,7 @@ export function parseCookieSecure(value?: string): boolean | undefined {
 export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     port: Number(env.PORT ?? 3000),
-    dataFile: resolve(env.DATA_DIR ?? 'data', 'game.json'),
+    databaseFile: resolve(env.DATA_DIR ?? 'data', 'just-one-more.db'),
     trustProxy: parseTrustProxy(env.TRUST_PROXY),
     cookieSecure: parseCookieSecure(env.COOKIE_SECURE),
   };

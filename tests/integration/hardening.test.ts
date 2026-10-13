@@ -1,7 +1,7 @@
-import { chmodSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 import { createApplication, type ApplicationOptions } from '../../src/server/app';
 import { createRoom, DEFAULT_SETTINGS, makePlayer } from '../../src/shared/engine';
@@ -151,53 +151,85 @@ describe('error handling', () => {
     expect((await fetch(`${base}/api/health`)).status).toBe(200);
   });
 
-  it.skipIf(runningAsRoot)(
-    'returns 500 for unexpected failures and reports not ready when storage is read-only',
-    async () => {
-      const directory = tempDirectory();
-      const { base } = await start({ dataFile: join(directory, 'game.json') });
-      expect((await fetch(`${base}/api/ready`)).status).toBe(200);
-      chmodSync(directory, 0o500);
-      const ready = await fetch(`${base}/api/ready`);
-      expect(ready.status).toBe(503);
-      expect(await ready.json()).toEqual({ ok: false });
-      const failed = await post(base, 'session', JSON.stringify({ name: 'Alice' }));
-      expect(failed.status).toBe(500);
-      expect(((await failed.json()) as { error: string }).error).toMatch(/on our side/);
-    },
-  );
+  it('returns 500 for unexpected failures', async () => {
+    const { application, base } = await start();
+    vi.spyOn(application.store, 'insertUser').mockImplementation(() => {
+      throw new Error('disk I/O error');
+    });
+    const failed = await post(base, 'session', JSON.stringify({ name: 'Alice' }));
+    expect(failed.status).toBe(500);
+    expect(((await failed.json()) as { error: string }).error).toMatch(/on our side/);
+  });
+
+  it.skipIf(runningAsRoot)('reports not ready when the database is read-only', async () => {
+    const directory = tempDirectory();
+    const databaseFile = join(directory, 'just-one-more.db');
+    const { base } = await start({ databaseFile });
+    expect((await fetch(`${base}/api/ready`)).status).toBe(200);
+    chmodSync(databaseFile, 0o400);
+    const ready = await fetch(`${base}/api/ready`);
+    expect(ready.status).toBe(503);
+    expect(await ready.json()).toEqual({ ok: false });
+  });
 });
 
 describe('persisted data', () => {
-  it.each([
-    ['not JSON', 'not json at all'],
-    ['the wrong shape', JSON.stringify({ users: [], sessions: 'x' })],
-  ])('moves a snapshot with %s aside and starts empty', async (_label, content) => {
+  it('moves an unreadable database aside and starts empty', async () => {
     const directory = tempDirectory();
-    const dataFile = join(directory, 'game.json');
-    writeFileSync(dataFile, content);
-    const { application, base } = await start({ dataFile });
-    expect(application.store.data.users).toEqual({});
-    expect(readdirSync(directory).some((f) => f.startsWith('game.json.corrupt-'))).toBe(true);
+    const databaseFile = join(directory, 'just-one-more.db');
+    writeFileSync(databaseFile, 'not a database at all, just some text '.repeat(40));
+    const { base } = await start({ databaseFile });
+    expect(readdirSync(directory).some((f) => f.startsWith('just-one-more.db.corrupt-'))).toBe(
+      true,
+    );
     expect((await fetch(`${base}/api/bootstrap`)).status).toBe(200);
+    expect((await post(base, 'session', JSON.stringify({ name: 'Alice' }))).status).toBe(200);
   });
 
-  it('cleans up expired sessions and stale unoccupied rooms and persists the result', async () => {
+  it('applies retention to sessions, guests, and stale rooms and persists the result', async () => {
     const directory = tempDirectory();
-    const dataFile = join(directory, 'game.json');
-    const { application, base } = await start({ dataFile });
-    await guest(base, 'Alice');
+    const databaseFile = join(directory, 'just-one-more.db');
+    const { application, base } = await start({ databaseFile });
+    const profile = async (cookie: string) => {
+      const res = await fetch(`${base}/api/bootstrap`, { headers: { Cookie: cookie } });
+      return ((await res.json()) as { profile: { id: string } | null }).profile;
+    };
+    const guestCookie = await guest(base, 'Alice');
+    const guestId = (await profile(guestCookie))!.id;
+    const seatedId = (await profile(await guest(base, 'Carol')))!.id;
+    const accountCookie = await guest(base, 'Bob');
+    const accountId = (await profile(accountCookie))!.id;
+    const registered = await post(
+      base,
+      'auth/register',
+      JSON.stringify({ username: 'bob_test', password: 'test-password-only' }),
+      { Cookie: accountCookie },
+    );
+    expect(registered.status).toBe(200);
+
+    const later = Date.now() + 31 * 86400000;
     const store = application.store;
-    for (const session of Object.values(store.data.sessions)) session.expires = Date.now() - 1;
     const stale = createRoom('OLD22', 'Old', makePlayer('ghost', 'Ghost'), DEFAULT_SETTINGS);
-    stale.updatedAt = Date.now() - 2 * 86400000;
-    store.data.rooms[stale.code] = stale;
-    application.cleanup();
-    expect(store.data.sessions).toEqual({});
-    expect(store.data.rooms).toEqual({});
-    const saved = JSON.parse(readFileSync(dataFile, 'utf8'));
-    expect(saved.sessions).toEqual({});
-    expect(saved.rooms).toEqual({});
+    stale.updatedAt = later - 2 * 86400000;
+    const active = createRoom('NEW22', 'New', makePlayer(seatedId, 'Carol'), DEFAULT_SETTINGS);
+    active.updatedAt = later;
+    for (const room of [stale, active]) {
+      store.setRoom(room);
+      store.saveRoom(room);
+    }
+    application.cleanup(later);
+
+    expect(store.getRoom('OLD22')).toBeUndefined();
+    expect(store.getRoom('NEW22')).toBeDefined();
+    expect(store.getUser(guestId)).toBeUndefined();
+    expect(store.getUser(seatedId)).toBeDefined();
+    expect(store.getUser(accountId)).toMatchObject({ account: true, username: 'bob_test' });
+    expect(await profile(guestCookie)).toBeNull();
+
+    await application.close();
+    const reopened = await start({ databaseFile });
+    expect([...reopened.application.store.rooms()].map((room) => room.code)).toEqual(['NEW22']);
+    expect(reopened.application.store.getUser(guestId)).toBeUndefined();
   });
 });
 

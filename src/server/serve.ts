@@ -15,8 +15,8 @@ export function serveClientBuild(application: Application, clientDir: string) {
 }
 
 export async function serve(configure: Configure, options: ApplicationOptions = {}) {
-  const { port, dataFile, trustProxy, cookieSecure } = readConfig();
-  const application = createApplication({ dataFile, trustProxy, cookieSecure, ...options });
+  const { port, databaseFile, trustProxy, cookieSecure } = readConfig();
+  const application = createApplication({ databaseFile, trustProxy, cookieSecure, ...options });
   const dispose = await configure(application);
   application.server.listen(port, '0.0.0.0', () => {
     console.log(`\n  Just One More → http://localhost:${port}\n`);
