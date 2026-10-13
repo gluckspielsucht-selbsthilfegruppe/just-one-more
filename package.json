@@ -4,14 +4,17 @@
   "description": "A real-time push-your-luck card game for friends.",
   "scripts": {
     "dev": "tsx watch src/server/index.ts",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc -b && vite build",
     "start": "tsx src/server/index.ts --production",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "tsc --noEmit && vitest run",
-    "test:integration": "vitest run tests/server.test.ts",
+    "check": "tsc -b && vitest run",
+    "test:integration": "vitest run --project integration",
     "format": "prettier --write src tests docs README.md *.ts *.json index.html",
-    "format:check": "prettier --check src tests docs README.md *.ts *.json index.html"
+    "format:check": "prettier --check src tests docs README.md *.ts *.json index.html",
+    "typecheck": "tsc -b",
+    "test:unit": "vitest run --project unit",
+    "test:client": "vitest run --project client"
   },
   "repository": {
     "type": "git",
