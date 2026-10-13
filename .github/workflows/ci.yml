@@ -40,13 +40,13 @@ jobs:
       - run: npm run test:coverage
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage
           path: coverage/
           retention-days: 7
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -64,7 +64,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
@@ -79,7 +79,7 @@ jobs:
             echo "install=chromium" >> "$GITHUB_OUTPUT"
             echo "projects=--project=chromium --project=mobile-chrome" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         id: cache
         with:
           path: ~/.cache/ms-playwright
@@ -89,7 +89,7 @@ jobs:
       - if: steps.cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps ${{ steps.browsers.outputs.install }}
       - run: npx playwright test ${{ steps.browsers.outputs.projects }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
