@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "A real-time push-your-luck card game for friends.",
   "scripts": {
-    "dev": "tsx watch src/server/index.ts",
-    "build": "tsc -b && vite build",
-    "start": "tsx src/server/index.ts --production",
+    "dev": "tsx watch src/server/dev.ts",
+    "build": "tsc -b && vite build && vite build --ssr src/server/index.ts",
+    "start": "NODE_ENV=production node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc -b && vitest run",
@@ -29,20 +29,16 @@
   },
   "homepage": "https://github.com/gluckspielsucht-selbsthilfegruppe/just-one-more#readme",
   "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/dm-serif-display": "^5.3.0",
     "@fontsource/rye": "^5.3.0",
-    "express": "^5.2.1",
-    "lucide-react": "^1.54.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "tsx": "^4.23.15",
-    "ws": "^8.22.0",
-    "zod": "^4.6.5"
-  },
-  "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
@@ -53,7 +49,11 @@
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^29.1.1",
+    "lucide-react": "^1.56.0",
     "prettier": "^3.9.9",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"
