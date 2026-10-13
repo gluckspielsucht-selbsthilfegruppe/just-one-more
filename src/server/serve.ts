@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { createApplication, type ApplicationOptions } from './app';
 import { readConfig } from './config';
 import { createLogger } from './logger';
+import { createMetricsServer } from './metrics';
 
 export type Application = ReturnType<typeof createApplication>;
 type Configure = (
@@ -16,7 +17,8 @@ export function serveClientBuild(application: Application, clientDir: string) {
 }
 
 export async function serve(configure: Configure, options: ApplicationOptions = {}) {
-  const { port, databaseFile, trustProxy, cookieSecure, logLevel } = readConfig();
+  const { port, databaseFile, trustProxy, cookieSecure, logLevel, metricsPort, metricsHost } =
+    readConfig();
   const logger = options.logger ?? createLogger({ level: logLevel });
   const application = createApplication({
     databaseFile,
@@ -36,11 +38,17 @@ export async function serve(configure: Configure, options: ApplicationOptions = 
             'Invite friends on your network',
           );
   });
+  const metricsServer =
+    metricsPort === undefined ? undefined : createMetricsServer(application.metrics);
+  metricsServer?.listen(metricsPort, metricsHost, () =>
+    logger.info({ url: `http://${metricsHost}:${metricsPort}/metrics` }, 'Metrics available'),
+  );
   let stopping = false;
   async function shutdown() {
     if (stopping) return;
     stopping = true;
     logger.info('Shutting down');
+    metricsServer?.close();
     await dispose?.();
     await application.close();
     process.exit(0);

@@ -37,6 +37,7 @@ import {
 import { Store, type User } from './store';
 import type { TrustProxy } from './config';
 import { silentLogger, type Logger } from './logger';
+import type { Metric } from './metrics';
 
 const derive = promisify(scrypt);
 const secureRandom = () => randomInt(0, 0x100000000) / 0x100000000;
@@ -135,6 +136,12 @@ export function createApplication(options: ApplicationOptions = {}) {
   let roomListSentAt = 0;
   let roomList = '';
   let closing = false;
+  const counters = {
+    commands: { ok: 0, rejected: 0, failed: 0 },
+    stateMessages: 0,
+    roomListMessages: 0,
+    httpResponses: new Map<string, number>(),
+  };
   app.disable('x-powered-by');
   app.set('trust proxy', options.trustProxy ?? false);
   app.use(
@@ -160,6 +167,10 @@ export function createApplication(options: ApplicationOptions = {}) {
     }),
   );
   app.use((req, res, next) => {
+    res.on('finish', () => {
+      const statusClass = `${Math.floor(res.statusCode / 100)}xx`;
+      counters.httpResponses.set(statusClass, (counters.httpResponses.get(statusClass) ?? 0) + 1);
+    });
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -251,6 +262,7 @@ export function createApplication(options: ApplicationOptions = {}) {
       if (!state) continue;
       const text = JSON.stringify(state);
       for (const ws of targets) send(ws, text);
+      counters.stateMessages += targets.size;
     }
   }
   // Lobby clients only need the public list; it is sent on change, at most once per interval.
@@ -266,7 +278,11 @@ export function createApplication(options: ApplicationOptions = {}) {
         roomList = text;
         const message = JSON.stringify({ type: 'rooms', rooms });
         for (const [id, targets] of sockets)
-          if (!seats.has(id)) for (const ws of targets) send(ws, message);
+          if (!seats.has(id))
+            for (const ws of targets) {
+              send(ws, message);
+              counters.roomListMessages++;
+            }
       },
       Math.max(0, roomListSentAt + roomListInterval - Date.now()),
     );
@@ -724,6 +740,7 @@ export function createApplication(options: ApplicationOptions = {}) {
               return;
             }
             handle(current, msg.type, msg.payload, msg.version);
+            counters.commands.ok++;
             seen.add(msg.id);
             if (seen.size > 512) seen.delete(seen.values().next().value!);
             send(ws, { type: 'ack', id: msg.id });
@@ -734,6 +751,7 @@ export function createApplication(options: ApplicationOptions = {}) {
               (error instanceof Error && error.constructor === Error);
             if (expected) logger.debug({ user: user.id, err: error }, 'Command rejected');
             else logger.error({ user: user.id, err: error }, 'Command failed');
+            counters.commands[expected ? 'rejected' : 'failed']++;
             send(ws, {
               type: 'error',
               id: requestId,
@@ -827,5 +845,75 @@ export function createApplication(options: ApplicationOptions = {}) {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     store.close();
   }
-  return { app, server, store, close, cleanup };
+  function metrics(): Metric[] {
+    const phases = { lobby: 0, playing: 0, 'round-end': 0, finished: 0 };
+    for (const room of store.rooms()) phases[room.phase]++;
+    const memory = process.memoryUsage();
+    return [
+      {
+        name: 'jom_websocket_connections',
+        help: 'Open WebSocket connections.',
+        type: 'gauge',
+        values: [{ value: clients.size }],
+      },
+      {
+        name: 'jom_connected_users',
+        help: 'Users with at least one open WebSocket.',
+        type: 'gauge',
+        values: [{ value: sockets.size }],
+      },
+      {
+        name: 'jom_rooms',
+        help: 'Active rooms by phase.',
+        type: 'gauge',
+        values: Object.entries(phases).map(([phase, value]) => ({ labels: { phase }, value })),
+      },
+      {
+        name: 'jom_commands_total',
+        help: 'WebSocket commands by result (rejected: rule or validation error; failed: bug).',
+        type: 'counter',
+        values: Object.entries(counters.commands).map(([result, value]) => ({
+          labels: { result },
+          value,
+        })),
+      },
+      {
+        name: 'jom_websocket_messages_total',
+        help: 'Broadcast messages sent by type.',
+        type: 'counter',
+        values: [
+          { labels: { type: 'state' }, value: counters.stateMessages },
+          { labels: { type: 'rooms' }, value: counters.roomListMessages },
+        ],
+      },
+      {
+        name: 'jom_http_responses_total',
+        help: 'HTTP responses by status class.',
+        type: 'counter',
+        values: [...counters.httpResponses].map(([status, value]) => ({
+          labels: { status },
+          value,
+        })),
+      },
+      {
+        name: 'process_resident_memory_bytes',
+        help: 'Resident memory size.',
+        type: 'gauge',
+        values: [{ value: memory.rss }],
+      },
+      {
+        name: 'nodejs_heap_used_bytes',
+        help: 'V8 heap in use.',
+        type: 'gauge',
+        values: [{ value: memory.heapUsed }],
+      },
+      {
+        name: 'process_uptime_seconds',
+        help: 'Process uptime.',
+        type: 'gauge',
+        values: [{ value: Math.round(process.uptime()) }],
+      },
+    ];
+  }
+  return { app, server, store, close, cleanup, metrics };
 }

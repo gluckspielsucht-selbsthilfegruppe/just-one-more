@@ -1,7 +1,9 @@
 import { Writable } from 'node:stream';
 import { pino } from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { WebSocket } from 'ws';
 import { createApplication, type ApplicationOptions } from '../../src/server/app';
+import { createMetricsServer } from '../../src/server/metrics';
 
 type Application = ReturnType<typeof createApplication>;
 type Line = {
@@ -76,5 +78,45 @@ describe('structured logging', () => {
     const failure = lines.find((line) => line.msg === 'Request failed')!;
     expect(failure.level).toBe(50);
     expect(failure.req?.id).toBe(res.headers.get('x-request-id'));
+  });
+});
+
+describe('metrics', () => {
+  it('reports connections, rooms, commands, and responses on a separate listener only', async () => {
+    const { application, base } = await start();
+    const metricsServer = createMetricsServer(application.metrics);
+    await new Promise<void>((resolve) => metricsServer.listen(0, '127.0.0.1', resolve));
+    const address = metricsServer.address();
+    if (!address || typeof address === 'string') throw new Error('No metrics address');
+    try {
+      const cookie = (await post(base, 'session', { name: 'Alice' })).headers
+        .get('set-cookie')!
+        .split(';')[0];
+      const ws = new WebSocket(`${base.replace('http', 'ws')}/ws`, {
+        headers: { Cookie: cookie, Origin: base },
+      });
+      const replies: { type: string; id?: string }[] = [];
+      ws.on('message', (raw) => replies.push(JSON.parse(raw.toString())));
+      await new Promise((resolve) => ws.once('open', resolve));
+      ws.send(JSON.stringify({ id: 'create-table', type: 'create', payload: { name: 'Metrics' } }));
+      ws.send(JSON.stringify({ id: 'unknown-type', type: 'bogus' }));
+      await vi.waitFor(() => expect(replies.filter((m) => m.id)).toHaveLength(2));
+
+      const res = await fetch(`http://127.0.0.1:${address.port}/metrics`);
+      expect(res.headers.get('content-type')).toContain('text/plain');
+      const text = await res.text();
+      expect(text).toContain('jom_websocket_connections 1');
+      expect(text).toContain('jom_rooms{phase="lobby"} 1');
+      expect(text).toContain('jom_commands_total{result="ok"} 1');
+      expect(text).toContain('jom_commands_total{result="rejected"} 1');
+      expect(text).toMatch(/jom_http_responses_total\{status="2xx"\} [1-9]/);
+      expect(text).toContain('# TYPE jom_commands_total counter');
+      expect((await fetch(`http://127.0.0.1:${address.port}/other`)).status).toBe(404);
+      expect((await fetch(`${base}/metrics`)).status).not.toBe(200);
+      expect((await fetch(`${base}/api/metrics`)).status).toBe(404);
+      ws.close();
+    } finally {
+      metricsServer.close();
+    }
   });
 });
