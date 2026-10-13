@@ -23,6 +23,7 @@ import {
   startRound,
   toPublicRoom,
   triggerHackathon,
+  type Random,
 } from '../shared/engine';
 import {
   CARD_DESIGNS,
@@ -67,8 +68,15 @@ function cookieToken(req: { headers: { cookie?: string } }) {
 }
 
 export function createApplication(
-  options: { dataFile?: string; botDelay?: number; disconnectDelay?: number } = {},
+  options: {
+    dataFile?: string;
+    botDelay?: number;
+    disconnectDelay?: number;
+    // Tests inject a seeded generator; production always uses the crypto source.
+    random?: Random;
+  } = {},
 ) {
+  const random = options.random ?? secureRandom;
   const store = new Store(options.dataFile);
   const app = express();
   const server = createServer(app);
@@ -177,7 +185,7 @@ export function createApplication(
         room.code,
         setTimeout(() => {
           timers.delete(room.code);
-          startRound(room, secureRandom);
+          startRound(room, random);
           commit(room);
         }, 2500),
       );
@@ -197,13 +205,13 @@ export function createApplication(
             const action: GameAction =
               !actor.bot && (!latest.prompt || latest.prompt.kind === 'bank')
                 ? { type: 'bank', roulette: false }
-                : botAction(latest, actor.id, secureRandom);
+                : botAction(latest, actor.id, random);
             if (!actor.bot)
               log(
                 latest,
                 `${actor.name} is disconnected. An automatic choice keeps the table moving.`,
               );
-            const next = applyAction(latest, actor.id, action, secureRandom);
+            const next = applyAction(latest, actor.id, action, random);
             store.data.rooms[room.code] = next;
             commit(next);
           } catch (error) {
@@ -464,11 +472,11 @@ export function createApplication(
       if (room.phase !== 'lobby') throw new Error('The game has already started.');
       if (room.players.some((p) => p.id !== room!.hostId && !p.ready))
         throw new Error('Wait for everyone to be ready.');
-      startRound(room, secureRandom);
+      startRound(room, random);
     } else if (type === 'next-round') {
       requireHost(room, user.id);
       if (room.phase !== 'round-end') throw new Error('Finish this round first.');
-      startRound(room, secureRandom);
+      startRound(room, random);
     } else if (type === 'rematch') {
       requireHost(room, user.id);
       if (room.phase !== 'finished') throw new Error('Finish this game first.');
@@ -499,7 +507,7 @@ export function createApplication(
     } else if (type === 'action') {
       if (version !== room.version)
         throw new Error('The table just changed. Your view is refreshed; please try again.');
-      room = applyAction(room, user.id, actionSchema.parse(payload.action), secureRandom);
+      room = applyAction(room, user.id, actionSchema.parse(payload.action), random);
       store.data.rooms[room.code] = room;
     } else throw new Error('Unknown table action.');
     commit(room);

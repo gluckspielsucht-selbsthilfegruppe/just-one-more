@@ -12,5 +12,12 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/server", "src/shared", "tests/unit", "tests/integration", "*.ts"]
+  "include": [
+    "src/server",
+    "src/shared",
+    "tests/unit",
+    "tests/integration",
+    "tests/support",
+    "*.ts"
+  ]
 }

@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { createApplication } from '../../src/server/app';
 import { DEFAULT_SETTINGS, makePlayer, startRound } from '../../src/shared/engine';
 import type { Profile, PublicRoom } from '../../src/shared/types';
+import { seededRandom } from '../support/random';
 
 type Snapshot = {
   type: 'state';
@@ -116,6 +117,29 @@ afterEach(async () => {
 });
 
 describe('four-player real-time server', () => {
+  it('deals from the injected random source so seeded servers are reproducible', async () => {
+    async function dealWithSeed() {
+      await application.close();
+      application = createApplication({ botDelay: 60_000, random: seededRandom(42) });
+      await listen();
+      const host = await connect('Alice');
+      await host.request('create', { name: 'Seeded', settings: DEFAULT_SETTINGS });
+      await host.request('add-bot');
+      await host.request('add-bot');
+      await host.request('start');
+      await until(() => host.state.room?.phase === 'playing');
+      const room = host.state.room!;
+      return {
+        hands: room.players.map((p) => p.hand.map((c) => `${c.kind}:${c.value}`)),
+        deckCount: room.deckCount,
+        events: room.events.map((e) => e.text.replace(/Cleo|Felix/g, 'Bot')),
+      };
+    }
+    const first = await dealWithSeed();
+    const second = await dealWithSeed();
+    expect(first.hands.flat().length).toBeGreaterThan(0);
+    expect(second).toEqual(first);
+  });
   it('lets the solo host reveal AI Hackathon once and broadcasts the real card event', async () => {
     const host = await connect('Alice');
     await host.request('create', { name: 'Bot demo', settings: DEFAULT_SETTINGS });
