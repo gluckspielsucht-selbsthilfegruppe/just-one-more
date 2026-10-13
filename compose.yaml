@@ -6,7 +6,9 @@ services:
     ports:
       - '${PORT:-3000}:3000'
     environment:
-      COOKIE_SECURE: '${COOKIE_SECURE:-false}'
+      # Empty values: Secure cookies follow the request protocol; proxy headers are not trusted.
+      COOKIE_SECURE: '${COOKIE_SECURE:-}'
+      TRUST_PROXY: '${TRUST_PROXY:-}'
     volumes:
       - game-data:/app/data
     restart: unless-stopped

@@ -33,6 +33,7 @@
   "homepage": "https://github.com/gluckspielsucht-selbsthilfegruppe/just-one-more#readme",
   "dependencies": {
     "express": "^5.2.1",
+    "proxy-addr": "^2.0.8",
     "ws": "^8.22.0",
     "zod": "^4.6.5"
   },
@@ -50,6 +51,7 @@
     "@testing-library/user-event": "^14.6.8",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.4",
+    "@types/proxy-addr": "^2.0.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.2",

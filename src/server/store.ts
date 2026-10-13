@@ -1,5 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { constants, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { access } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { z } from 'zod';
 import type { Profile, Room } from '../shared/types';
 
 export interface User extends Profile {
@@ -14,14 +16,42 @@ export interface Database {
   completed: string[];
   recordedRounds: Record<string, number>;
 }
+// Checks only what loading relies on, so snapshots from older versions stay valid.
+const snapshotSchema = z.object({
+  users: z.record(z.string(), z.looseObject({ id: z.string(), stats: z.looseObject({}) })),
+  sessions: z.record(z.string(), z.looseObject({ userId: z.string(), expires: z.number() })),
+  rooms: z.record(
+    z.string(),
+    z.looseObject({
+      code: z.string(),
+      gameId: z.string(),
+      players: z.array(z.looseObject({ id: z.string() })),
+      history: z.array(z.unknown()),
+    }),
+  ),
+  completed: z.array(z.string()).default([]),
+  recordedRounds: z.record(z.string(), z.number()).default({}),
+});
+function empty(): Database {
+  return { users: {}, sessions: {}, rooms: {}, completed: [], recordedRounds: {} };
+}
+function load(file?: string): Database {
+  if (!file || !existsSync(file)) return empty();
+  const text = readFileSync(file, 'utf8');
+  try {
+    return snapshotSchema.parse(JSON.parse(text)) as unknown as Database;
+  } catch (error) {
+    const backup = `${file}.corrupt-${Date.now()}`;
+    renameSync(file, backup);
+    console.error(`Saved data is unreadable; moved it to ${backup} and started empty.`, error);
+    return empty();
+  }
+}
 export class Store {
   data: Database;
   constructor(private file?: string) {
-    this.data =
-      file && existsSync(file)
-        ? JSON.parse(readFileSync(file, 'utf8'))
-        : { users: {}, sessions: {}, rooms: {}, completed: [], recordedRounds: {} };
-    this.data.recordedRounds ??= {};
+    if (file) mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
+    this.data = load(file);
     for (const user of Object.values(this.data.users)) user.appearance ??= 'neon';
     for (const room of Object.values(this.data.rooms)) {
       room.departedIds ??= [];
@@ -63,5 +93,14 @@ export class Store {
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 });
     writeFileSync(`${this.file}.tmp`, JSON.stringify(this.data), { mode: 0o600 });
     renameSync(`${this.file}.tmp`, this.file);
+  }
+  async writable() {
+    if (!this.file) return true;
+    try {
+      await access(dirname(this.file), constants.W_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

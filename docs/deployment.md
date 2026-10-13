@@ -4,13 +4,21 @@ The app is one Node.js process serving HTTP and WebSockets on a single port. It 
 
 ## Configuration
 
-| Variable        | Default  | Purpose                                                               |
-| --------------- | -------- | --------------------------------------------------------------------- |
-| `PORT`          | `3000`   | HTTP and WebSocket port.                                              |
-| `DATA_DIR`      | `./data` | Directory containing the atomic `game.json` snapshot.                 |
-| `COOKIE_SECURE` | `false`  | Set to `true` when serving behind HTTPS. Keep `false` for local HTTP. |
+| Variable        | Default  | Purpose                                                                                                                                                                                                                                    |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`          | `3000`   | HTTP and WebSocket port.                                                                                                                                                                                                                   |
+| `DATA_DIR`      | `./data` | Directory containing the atomic `game.json` snapshot.                                                                                                                                                                                      |
+| `TRUST_PROXY`   | (unset)  | Which proxies may supply the client IP and protocol via `X-Forwarded-For`/`X-Forwarded-Proto`. Same values as Express `trust proxy`: a hop count (`1`), or addresses/subnets (`loopback`, `uniquelocal`, `10.0.0.1`). Unset trusts nobody. |
+| `COOKIE_SECURE` | (unset)  | Unset: session cookies are `Secure` when the request is HTTPS (directly or via a trusted proxy). `true`/`false` force the flag.                                                                                                            |
 
 Example: `PORT=8080 DATA_DIR=./demo-data npm start`.
+
+Only set `TRUST_PROXY` when clients cannot reach the app except through that proxy; otherwise anyone can fake their IP address for rate limiting.
+
+## Health checks
+
+- `GET /api/health`: liveness; the process answers.
+- `GET /api/ready`: readiness; `200` when the data directory is writable, `503` otherwise. The Docker image uses this check.
 
 ## Run with Node.js
 
@@ -40,9 +48,9 @@ docker compose logs -f app
 docker compose down        # stop and remove the container; keep saved data
 ```
 
-To use another host port, run `PORT=8080 docker compose up --build -d` and open `http://localhost:8080`. The internal port remains 3000. Behind HTTPS, set `COOKIE_SECURE=true` when starting Compose.
+To use another host port, run `PORT=8080 docker compose up --build -d` and open `http://localhost:8080`. The internal port remains 3000. Behind your own HTTPS reverse proxy, set `TRUST_PROXY` to the proxy's address (or hop count) so cookies, HSTS, and rate limits use the original request.
 
-The `Dockerfile` has two stages (build, runtime), so it also works on hosts that limit builds to two stages. The runtime image contains only the built `dist/` output and production dependencies, runs as the unprivileged `node` user, and checks `/api/health`. Source changes require rebuilding the image.
+The `Dockerfile` has two stages (build, runtime), so it also works on hosts that limit builds to two stages. The runtime image contains only the built `dist/` output and production dependencies, runs as the unprivileged `node` user, and checks `/api/ready`. Source changes require rebuilding the image.
 
 ## Saved data and backups
 
@@ -57,7 +65,7 @@ docker compose cp app:/app/data/game.json ./data/game-backup.json
 docker compose start app
 ```
 
-Restoring the file restores games and profiles.
+Restoring the file restores games and profiles. If the snapshot cannot be read on startup (invalid JSON or an unexpected structure), the server renames it to `game.json.corrupt-<timestamp>`, logs an error, and starts with empty data, so the original can still be inspected or restored. Expired sessions and rooms without activity for 24 hours are removed automatically.
 
 ## Play over the internet with a Quick Tunnel
 
@@ -69,7 +77,7 @@ docker compose -f compose.yaml -f compose.tunnel.yaml up --build tunnel
 
 Wait for the `https://….trycloudflare.com` URL in the output. Open that URL yourself, create a table, and share its invitation link. Everyone, including the host, must use the same tunnel URL. Friends only need a browser; no shared Wi-Fi, port forwarding, Cloudflare account, domain, or token is required. Keep the terminal open and the computer awake while playing.
 
-The tunnel waits for the app's health check and forwards HTTP and WebSockets to `app:3000`. The override enables `COOKIE_SECURE=true`, so plain HTTP LAN addresses cannot carry the session cookie while this mode is active.
+The tunnel waits for the app's readiness check and forwards HTTP and WebSockets to `app:3000`. In this mode the app port is **not** published on the host, so the app is only reachable through the tunnel; this makes the forwarded client IP and protocol trustworthy (`TRUST_PROXY=uniquelocal`). Use the tunnel URL from every device, including the host computer. Session cookies are always `Secure` in this mode.
 
 Restarting the tunnel gives it a new hostname. Browser cookies belong to the old hostname, so guest identities and saved seats do not follow to a new URL; accounts can sign in again. Saved game data stays in the volume.
 

@@ -2,8 +2,11 @@
 # docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d
 services:
   app:
+    # Only the tunnel can reach the app, so its forwarded client IP and protocol are trustworthy.
+    ports: !reset []
     environment:
       COOKIE_SECURE: 'true'
+      TRUST_PROXY: 'uniquelocal'
 
   tunnel:
     image: cloudflare/cloudflared:2026.10.0

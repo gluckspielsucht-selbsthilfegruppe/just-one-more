@@ -2,6 +2,7 @@ import express from 'express';
 import { networkInterfaces } from 'node:os';
 import { resolve } from 'node:path';
 import { createApplication, type ApplicationOptions } from './app';
+import { readConfig } from './config';
 
 export type Application = ReturnType<typeof createApplication>;
 type Configure = (
@@ -14,11 +15,8 @@ export function serveClientBuild(application: Application, clientDir: string) {
 }
 
 export async function serve(configure: Configure, options: ApplicationOptions = {}) {
-  const port = Number(process.env.PORT ?? 3000);
-  const application = createApplication({
-    dataFile: resolve(process.env.DATA_DIR ?? 'data', 'game.json'),
-    ...options,
-  });
+  const { port, dataFile, trustProxy, cookieSecure } = readConfig();
+  const application = createApplication({ dataFile, trustProxy, cookieSecure, ...options });
   const dispose = await configure(application);
   application.server.listen(port, '0.0.0.0', () => {
     console.log(`\n  Just One More → http://localhost:${port}\n`);
