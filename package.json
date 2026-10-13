@@ -8,14 +8,15 @@
     "start": "NODE_ENV=production node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "tsc -b && vitest run",
+    "check": "tsc -b && npm run lint && vitest run",
     "test:integration": "vitest run --project integration",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "typecheck": "tsc -b",
     "test:unit": "vitest run --project unit",
     "test:client": "vitest run --project client",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "oxlint --max-warnings 101"
   },
   "repository": {
     "type": "git",
@@ -52,6 +53,7 @@
     "@vitest/coverage-v8": "^5.0.3",
     "jsdom": "^29.1.1",
     "lucide-react": "^1.56.0",
+    "oxlint": "^1.88.0",
     "prettier": "^3.9.9",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
