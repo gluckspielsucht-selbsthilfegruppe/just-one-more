@@ -1,6 +1,6 @@
 # Technical Plan: From Hackathon MVP to Permanent Hosting
 
-Status: **Draft** · Created 2026-10-13 · Updated 2026-10-13 · Scope: planning only, nothing below is implemented yet. This file moves to `docs/technical-plan.md` in C-05.
+Status: **In progress** · Created 2026-10-13 · Updated 2026-10-13 · See the progress table below for implemented tasks.
 
 ## 1. Context and decisions
 

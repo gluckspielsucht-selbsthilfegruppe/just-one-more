@@ -5,7 +5,3 @@ coverage
 playwright-report
 test-results
 package-lock.json
-PROJECT_DESCRIPTION.md
-SPEC.md
-game-rules.md
-tech-constraints.md
