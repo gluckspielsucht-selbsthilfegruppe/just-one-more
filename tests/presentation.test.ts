@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRoom, makePlayer, toPublicRoom, DEFAULT_SETTINGS } from '../shared/engine';
+import { createRoom, makePlayer, toPublicRoom, DEFAULT_SETTINGS } from '../src/shared/engine';
 import {
   momentDelay,
   rouletteResult,
   rouletteRotation,
   SPIN_DURATION,
   type RouletteBet,
-} from '../src/roulette';
+} from '../src/client/roulette';
 import {
   DEFAULT_AUDIO_SETTINGS,
   GameAudio,
   readAudioSettings,
   resolveSoundtrack,
   type AudioSettings,
-} from '../src/audio';
+} from '../src/client/audio';
 
 afterEach(() => {
   vi.useRealTimers();

@@ -10,9 +10,5 @@
 !public/**
 !src/
 !src/**
-!server/
-!server/**
-!shared/
-!shared/**
 !tests/
 !tests/**
