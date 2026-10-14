@@ -291,8 +291,8 @@ flowchart LR
 - Runs are kept small for limited Actions usage: one Node version (`.nvmrc`), a single `npm ci` for all static checks, tests, and the build; Chromium-only e2e on pull requests; cached Playwright browsers and Docker layers; superseded runs are cancelled.
 - Artifacts: coverage report, Playwright HTML report and traces on failure.
 - `npm audit --omit=dev --audit-level=high` blocks on high/critical advisories in production dependencies.
-- Branch protection on `main`: all jobs required, at least one review, linear history.
-- Dependency updates (T-09): grouped by ecosystem (React, Vite/Vitest, types, lint), weekly; auto-merge allowed only for dev-dependency patch updates with a fully green pipeline.
+- Branch protection on `main`: all jobs required, no required review, linear history.
+- Dependency updates (T-09): grouped by ecosystem (React, Vite/Vitest, types, lint), weekly; every Dependabot update, including majors, is squash-merged automatically once the pipeline is green.
 
 ## 7. SQLite design
 
