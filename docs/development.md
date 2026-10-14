@@ -96,7 +96,12 @@ The e2e accessibility spec fails on any serious or critical axe finding except t
 
 A newer push to the same branch cancels the running workflow.
 
-Dependabot (`.github/dependabot.yml`) opens grouped weekly updates for npm packages, GitHub Actions, and the Docker base image; each update runs the full pipeline. Protect `main` in the repository settings and require these checks before merging.
+Dependabot (`.github/dependabot.yml`) opens grouped weekly updates for npm packages, GitHub Actions, and the Docker base image; each update runs the full pipeline. `.github/workflows/dependabot-auto-merge.yml` enables auto-merge (squash) on every Dependabot pull request, including major updates, so GitHub merges it once the required checks pass; a failing update stays open for a human. This needs these repository settings:
+
+- General: "Allow auto-merge" and "Allow squash merging" enabled.
+- Branch ruleset on `main`: require the status checks `Format, lint, types, tests, build`, `End-to-end (Playwright)`, and `Docker image smoke test`; require linear history; no required reviews. Leave "require branches to be up to date" off, otherwise the remaining weekly updates stall after the first one merges.
+
+Merges made by the workflow token do not trigger the push-to-`main` run, so Firefox and WebKit run against auto-merged updates only in the weekly scheduled run. Existing Dependabot pull requests pick up the workflow after `@dependabot rebase`.
 
 ## TypeScript projects
 
