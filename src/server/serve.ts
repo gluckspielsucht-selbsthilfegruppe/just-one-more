@@ -1,6 +1,7 @@
+import compression from 'compression';
 import express from 'express';
 import { networkInterfaces } from 'node:os';
-import { resolve } from 'node:path';
+import { extname, resolve } from 'node:path';
 import { createApplication, type ApplicationOptions } from './app';
 import { readConfig } from './config';
 import { createLogger } from './logger';
@@ -12,8 +13,20 @@ type Configure = (
 ) => void | (() => Promise<void>) | Promise<void | (() => Promise<void>)>;
 
 export function serveClientBuild(application: Application, clientDir: string) {
-  application.app.use(express.static(clientDir, { maxAge: '1h' }));
-  application.app.get('/{*path}', (_req, res) => res.sendFile(resolve(clientDir, 'index.html')));
+  const { app } = application;
+  app.use(compression());
+  // Vite puts a content hash in every file name under /assets, so they never change.
+  app.use(
+    '/assets',
+    express.static(resolve(clientDir, 'assets'), { immutable: true, maxAge: '1y', index: false }),
+    (_req: express.Request, res: express.Response) => res.sendStatus(404),
+  );
+  app.use(express.static(clientDir, { index: false, maxAge: '1h' }));
+  app.get('/{*path}', (req, res) => {
+    if (extname(req.path)) return res.sendStatus(404);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(resolve(clientDir, 'index.html'));
+  });
 }
 
 export async function serve(configure: Configure, options: ApplicationOptions = {}) {
