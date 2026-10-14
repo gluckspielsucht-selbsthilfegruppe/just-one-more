@@ -32,6 +32,7 @@ import { DEFAULT_SETTINGS, COLORS } from '../shared/engine';
 import { api, useGame } from './useGame';
 import { Avatar, HeroCards, Mark, Modal, Sunburst } from './components/ui';
 import { GunslingerClicks, WesternScenery } from './components/Western';
+import { HalloweenScenery, HauntedClicks } from './components/Halloween';
 import { Rules } from './components/Rules';
 import { Lobby, Table } from './components/Table';
 import { AppearanceDialog, AppearancePicker } from './components/Appearance';
@@ -66,7 +67,10 @@ export default function App() {
   const [initialAppearance] = useState(readCachedAppearance);
   const appearance = game.profile?.appearance ?? initialAppearance;
   const hackathonMode = Boolean(room?.reversed);
-  const western = appearance === 'western' && !hackathonMode;
+  const scene =
+    !hackathonMode && (appearance === 'western' || appearance === 'halloween')
+      ? appearance
+      : undefined;
   const appearanceName = hackathonMode
     ? 'AI Hackathon'
     : APPEARANCES.find((a) => a.id === appearance)!.name;
@@ -210,10 +214,16 @@ export default function App() {
     <div
       className={`app appearance-${hackathonMode ? 'hackathon' : appearance} theme-${hackathonMode ? 'hackathon' : (game.profile?.theme ?? 'classic')} ${focusMode && room && tab === 'play' ? 'focus-mode' : ''}`}
     >
-      {western && (
+      {scene === 'western' && (
         <>
           <WesternScenery />
           <GunslingerClicks />
+        </>
+      )}
+      {scene === 'halloween' && (
+        <>
+          <HalloweenScenery />
+          <HauntedClicks />
         </>
       )}
       <aside className="rail">
@@ -408,7 +418,7 @@ export default function App() {
                     game.command('action', { action: { type: 'bank', roulette: true } })
                   }
                   playSound={audio.play}
-                  western={western}
+                  scene={scene}
                 />
               )}
             </>
@@ -431,6 +441,12 @@ export default function App() {
                         Fastest draw
                         <br />
                         in the <span>west.</span>
+                      </>
+                    ) : appearance === 'halloween' ? (
+                      <>
+                        Dare to draw
+                        <br />
+                        just one <span>more?</span>
                       </>
                     ) : appearance === 'pop' ? (
                       <>

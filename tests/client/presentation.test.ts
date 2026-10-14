@@ -100,7 +100,7 @@ describe('audio preferences and lifecycle', () => {
     vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ music: true, volume: 900 }) });
     expect(readAudioSettings().volume).toBe(1);
   });
-  it.each(['theme', 'neon', 'velvet', 'pop', 'western'] as const)(
+  it.each(['theme', 'neon', 'velvet', 'pop', 'western', 'halloween'] as const)(
     'restores the saved %s music style',
     (style) => {
       const saved = { music: true, effects: true, volume: 0.6, style };
@@ -122,11 +122,11 @@ describe('audio preferences and lifecycle', () => {
       });
     },
   );
-  it.each(['neon', 'velvet', 'pop', 'western'] as const)(
+  it.each(['neon', 'velvet', 'pop', 'western', 'halloween'] as const)(
     'follows the %s theme only when requested',
     (appearance) => {
       expect(resolveSoundtrack('theme', appearance)).toBe(appearance);
-      for (const style of ['neon', 'velvet', 'pop', 'western'] as const)
+      for (const style of ['neon', 'velvet', 'pop', 'western', 'halloween'] as const)
         expect(resolveSoundtrack(style, appearance)).toBe(style);
     },
   );
@@ -267,6 +267,29 @@ describe('audio preferences and lifecycle', () => {
     audio.play('bust');
     const gunshot = nodes.slice(beforeShot);
     expect(gunshot.some((node) => !(node instanceof Oscillator))).toBe(true);
+    expect(vi.getTimerCount()).toBe(1);
+
+    // The Halloween score follows Haunted Hollow and hands over cleanly like every other style.
+    const beforeHaunt = nodes.length;
+    audio.configure({ ...settings, effects: true }, 'halloween');
+    const hauntedNotes = nodes.slice(beforeHaunt);
+    expect(hauntedNotes.length).toBeGreaterThan(0);
+    expect(vi.getTimerCount()).toBe(1);
+    audio.configure({ ...settings, style: 'neon', effects: true }, 'halloween');
+    expect(hauntedNotes.every((node) => node.stop.mock.calls.length >= 2)).toBe(true);
+
+    // Haunted Hollow busts roll thunder (noise) under a ghostly wail (oscillators).
+    const beforeBoo = nodes.length;
+    audio.play('bust');
+    const boo = nodes.slice(beforeBoo);
+    expect(boo.some((node) => !(node instanceof Oscillator))).toBe(true);
+    expect(boo.some((node) => node instanceof Oscillator)).toBe(true);
+    // Every themed cue makes a sound; the hackathon fanfare stays shared.
+    for (const cue of ['draw', 'bank', 'special', 'win', 'turn', 'tick', 'hackathon'] as const) {
+      const before = nodes.length;
+      audio.play(cue);
+      expect(nodes.length).toBeGreaterThan(before);
+    }
     expect(vi.getTimerCount()).toBe(1);
     audio.dispose();
     expect(vi.getTimerCount()).toBe(0);

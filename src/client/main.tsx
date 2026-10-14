@@ -6,6 +6,7 @@ import '@fontsource/barlow-condensed/700.css';
 import '@fontsource/barlow-condensed/800.css';
 import '@fontsource/dm-serif-display/400.css';
 import '@fontsource/rye/400.css';
+import '@fontsource/creepster/400.css';
 import './styles/styles.css';
 import './styles/themes.css';
 import './styles/hands.css';
@@ -13,6 +14,7 @@ import './styles/motion.css';
 import './styles/card-themes.css';
 import './styles/hackathon-theme.css';
 import './styles/western-theme.css';
+import './styles/halloween-theme.css';
 import App from './App';
 import { readCachedAppearance } from './appearance';
 
