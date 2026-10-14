@@ -34,6 +34,7 @@
   "homepage": "https://github.com/gluckspielsucht-selbsthilfegruppe/just-one-more#readme",
   "dependencies": {
     "better-sqlite3": "^13.0.3",
+    "compression": "^1.8.2",
     "express": "^5.2.1",
     "pino": "^10.4.0",
     "pino-http": "^11.0.0",
@@ -54,6 +55,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
     "@types/better-sqlite3": "^9.6.0",
+    "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.4",
     "@types/proxy-addr": "^2.0.3",

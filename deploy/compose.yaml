@@ -1,0 +1,42 @@
+# Production stack for a single VPS: Caddy (HTTPS) in front of the app.
+# Setup and operations: docs/deployment.md#production-on-a-vps. Values come from .env next to this file.
+services:
+  app:
+    image: '${IMAGE:?set IMAGE in .env}:${IMAGE_TAG:-latest}'
+    init: true
+    # Not published: only Caddy reaches the app, so its forwarded IP and protocol are trustworthy.
+    environment:
+      COOKIE_SECURE: 'true'
+      TRUST_PROXY: 'uniquelocal'
+      LOG_LEVEL: '${LOG_LEVEL:-info}'
+    volumes:
+      - game-data:/app/data
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '5' }
+
+  caddy:
+    image: caddy:2
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: '${DOMAIN:?set DOMAIN in .env}'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '5' }
+
+volumes:
+  game-data:
+  caddy-data:
+  caddy-config:
