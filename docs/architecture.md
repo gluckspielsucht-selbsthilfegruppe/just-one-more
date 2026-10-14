@@ -101,7 +101,7 @@ Retention runs with the 30-second heartbeat: expired sessions are deleted; guest
 
 ## Hosting
 
-The app runs locally or in Docker and listens on `0.0.0.0`, so friends on the same network can join through the host's LAN IP. For internet sessions, `compose.tunnel.yaml` adds an accountless Cloudflare Quick Tunnel sidecar that forwards HTTPS and WebSocket traffic to the local app. See [deployment.md](deployment.md). Permanent hosting is planned in [technical-plan.md](technical-plan.md).
+The app runs locally or in Docker and listens on `0.0.0.0`, so friends on the same network can join through the host's LAN IP. For short internet sessions, `compose.tunnel.yaml` adds an accountless Cloudflare Quick Tunnel sidecar that forwards HTTPS and WebSocket traffic to the local app. Permanent hosting is one VPS with Docker Compose and Caddy as the HTTPS reverse proxy (`deploy/`); CI publishes the image to GHCR and deploys it over SSH. See [deployment.md](deployment.md#production-on-a-vps).
 
 ## Operational boundaries
 

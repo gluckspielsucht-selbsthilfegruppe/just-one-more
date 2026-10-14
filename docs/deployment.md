@@ -104,7 +104,7 @@ The `Dockerfile` has two stages (build, runtime), so it also works on hosts that
 
 Games, accounts, and sessions persist in the Compose-managed `game-data` volume mounted at `/app/data` (or in `DATA_DIR` when running with Node.js). Rebuilds and container replacement retain this data. **`docker compose down --volumes` deletes it.** Run **one server process per data directory**.
 
-The database contains rooms, accounts, hashed passwords, profile statistics, and hashed session tokens. Treat backups as private. There is no scheduled backup yet; to back up, stop the app so the database is checkpointed into a single file, then copy it:
+The database contains rooms, accounts, hashed passwords, profile statistics, and hashed session tokens. Treat backups as private. In production, the VPS provider's daily server backups are the backup (see [Backups and restore](#backups-and-restore)). For a one-off copy, stop the app so the database is checkpointed into a single file, then copy it:
 
 ```sh
 mkdir -p backups
@@ -149,6 +149,80 @@ If the URL does not load, check `docker compose -f compose.yaml -f compose.tunne
 ## LAN troubleshooting
 
 If a friend cannot connect on the local network, ensure both devices share a network, use the printed IP address rather than `localhost`, and check that the host firewall permits incoming connections on the chosen port. Guest Wi-Fi with client isolation may prevent LAN play. Each player needs a separate device, browser profile, or private window; tabs in the same profile share an identity.
+
+## Production on a VPS
+
+Permanent hosting runs on one small Linux VPS with Docker Compose: [Caddy](https://caddyserver.com) terminates HTTPS (automatic Let's Encrypt certificates) and forwards HTTP and WebSockets to the app. The app port is not published, so only Caddy can reach it; that is why `TRUST_PROXY=uniquelocal` is safe. Files: [`deploy/`](../deploy/).
+
+```mermaid
+flowchart LR
+  Browser -- HTTPS / WSS :443 --> Caddy
+  Caddy -- HTTP :3000 --> App[app container]
+  App --> Volume[(game-data volume<br/>SQLite)]
+  GitHub[GitHub Actions] -- SSH: deploy.sh tag --> Server
+  Server -- docker pull --> GHCR[(ghcr.io image)]
+```
+
+The load test shows that 1 vCPU and 1–2 GB RAM are plenty (see [Load testing](#load-testing)). Images are built for `linux/amd64`, so choose an x86 server.
+
+### One-time server setup
+
+1. **Server:** Ubuntu LTS, SSH key login only. Enable the provider's **automatic backups** (daily server snapshots; this is the backup strategy, see below). Firewall: allow 22, 80, 443 (TCP) and 443 (UDP) only.
+2. **DNS:** an `A` (and `AAAA` for IPv6) record for the domain pointing to the server. Caddy needs it before it can obtain a certificate.
+3. **Base software:** Docker Engine with the Compose plugin; `unattended-upgrades` for security updates.
+4. **Deploy user:** create a user `deploy` in the `docker` group (note: Docker access is equivalent to root on that machine) and the directory `/opt/just-one-more` owned by it.
+5. **Files:** copy `deploy/compose.yaml`, `deploy/Caddyfile`, and `deploy/deploy.sh` to `/opt/just-one-more`, and `deploy/.env.example` to `/opt/just-one-more/.env`. Set `DOMAIN` in `.env`.
+6. **Image access:** make the GHCR package `just-one-more` public (GitHub → Packages → Package settings → Change visibility), or run `docker login ghcr.io` as `deploy` with a token that has only `read:packages`.
+7. **First start:** as `deploy` in `/opt/just-one-more`: `./deploy.sh latest`, then `docker compose up -d` (starts Caddy). Open `https://<domain>`.
+
+### Automatic deployment
+
+Every push to `main` that passes all CI jobs publishes `ghcr.io/<owner>/just-one-more:sha-<commit>` and `:latest`, then runs the [Deploy workflow](../.github/workflows/deploy.yml). It connects over SSH and runs `deploy.sh sha-<commit>`. The script pulls the image, replaces the app container, and waits for the health check; if the new version is not healthy within two minutes, it switches back to the previous tag and the workflow fails. Pull requests never deploy. The deploy job is skipped until the variables below exist, so CI stays green before the server is set up.
+
+Set up a dedicated SSH key for CI that can do nothing but deploy:
+
+```sh
+ssh-keygen -t ed25519 -N '' -C github-deploy -f deploy_key
+# On the server, one line in ~deploy/.ssh/authorized_keys:
+command="/opt/just-one-more/deploy.sh",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA… github-deploy
+# The host key for known_hosts (compare the fingerprint with the provider console):
+ssh-keyscan -t ed25519 <server>
+```
+
+In the GitHub repository (Settings → Environments → `production`; no required reviewers):
+
+| Name                 | Kind     | Value                                                                                              |
+| -------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `DEPLOY_SSH_KEY`     | Secret   | Content of `deploy_key` (private key). Delete the local file afterwards.                           |
+| `DEPLOY_KNOWN_HOSTS` | Secret   | Output of `ssh-keyscan`.                                                                           |
+| `DEPLOY_HOST`        | Variable | Server host name or IP. Must be a **repository** variable: it decides whether the deploy job runs. |
+| `DEPLOY_USER`        | Variable | `deploy`                                                                                           |
+| `DEPLOY_URL`         | Variable | `https://<domain>`; checked after each deployment.                                                 |
+
+### Rollback
+
+Run the **Deploy** workflow manually (Actions → Deploy → Run workflow) with an older tag, for example `sha-1a2b3c4`; the tags are listed on the GHCR package page. On the server, `./deploy.sh sha-1a2b3c4` does the same. Database migrations only move forward: a release that changes the schema must stay readable by the previous release, otherwise roll back by restoring a backup.
+
+### Backups and restore
+
+The provider's automatic server backups (daily, kept for about a week) contain the whole disk, including the Docker volume with the database. SQLite in WAL mode is safe to snapshot while running: a snapshot behaves like a sudden power cut, and SQLite recovers the last committed transaction on the next start. There is no separate off-site copy; a backup taken on the same provider does not protect against losing the provider account.
+
+- **Restore the whole server:** in the provider console, restore the latest backup (or create a new server from it), then check `https://<domain>/api/ready`.
+- **Restore only the database:** create a temporary server from a backup, copy `/var/lib/docker/volumes/just-one-more_game-data/_data/just-one-more.db` from it, then on the production server stop the app, copy the file into the volume (`docker compose cp`), remove `-wal`/`-shm` files, and start the app.
+- Before risky operations, take a manual snapshot in the provider console.
+
+### Operations
+
+| Task            | Command (as `deploy` in `/opt/just-one-more`)                               |
+| --------------- | --------------------------------------------------------------------------- |
+| Status          | `docker compose ps`                                                         |
+| Logs            | `docker compose logs -f app` (JSON; pipe through `npx pino-pretty` to read) |
+| Restart         | `docker compose restart app`                                                |
+| Current version | `grep IMAGE_TAG .env`                                                       |
+| Update Caddy    | `docker compose pull caddy && docker compose up -d caddy`                   |
+| Disk usage      | `docker system df`                                                          |
+
+Container logs rotate automatically (5 × 10 MB per container, see `deploy/compose.yaml`). Caddy keeps its certificates in the `caddy-data` volume; do not delete it, or Let's Encrypt rate limits may delay a new certificate. Uptime monitoring is not set up yet (O-04 deferred).
 
 ## Choosing a paid or free hosting service
 
