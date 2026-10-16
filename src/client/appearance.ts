@@ -6,6 +6,11 @@ export const APPEARANCES = [
   { id: 'pop', name: 'Lucky Pop', description: 'Big color. Bigger personality.' },
   { id: 'glow', name: 'Violet Glow', description: 'Shimmering violet. Electric pink.' },
   { id: 'western', name: 'High Noon', description: 'Dust, leather and the fastest draw in town.' },
+  {
+    id: 'halloween',
+    name: 'Haunted Hollow',
+    description: 'Moonlit graves, grinning pumpkins and a little fright.',
+  },
 ] as const;
 
 export function readCachedAppearance(): Profile['appearance'] {

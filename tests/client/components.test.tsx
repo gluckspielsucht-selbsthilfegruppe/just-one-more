@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makePlayer } from '../../src/shared/engine';
@@ -8,6 +8,8 @@ import { DEFAULT_AUDIO_SETTINGS } from '../../src/client/audio';
 import { AppearancePicker } from '../../src/client/components/Appearance';
 import { AudioControls } from '../../src/client/components/AudioControls';
 import { HandCards } from '../../src/client/components/HandCards';
+import { HauntedClicks } from '../../src/client/components/Halloween';
+import { RoundMoment } from '../../src/client/components/Motion';
 import { Rules } from '../../src/client/components/Rules';
 import { Modal, PlayerStatus, PlayingCard } from '../../src/client/components/ui';
 
@@ -102,6 +104,8 @@ describe('AppearancePicker', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: /High Noon/ }));
     expect(onChange).toHaveBeenCalledWith('western');
+    await userEvent.click(screen.getByRole('button', { name: /Haunted Hollow/ }));
+    expect(onChange).toHaveBeenCalledWith('halloween');
   });
 
   it('ignores clicks while saving', async () => {
@@ -117,8 +121,84 @@ describe('readCachedAppearance', () => {
     expect(readCachedAppearance()).toBe('neon');
     localStorage.setItem('jom-appearance', 'glow');
     expect(readCachedAppearance()).toBe('glow');
+    localStorage.setItem('jom-appearance', 'halloween');
+    expect(readCachedAppearance()).toBe('halloween');
     localStorage.setItem('jom-appearance', 'unknown');
     expect(readCachedAppearance()).toBe('neon');
+  });
+});
+
+describe('RoundMoment', () => {
+  it('turns a Haunted Hollow bust into a ghostly BOO', () => {
+    render(
+      <RoundMoment
+        event={{ id: 1, text: '', type: 'bust', moment: 'bust' }}
+        name="Alice"
+        scene="halloween"
+      />,
+    );
+    const status = screen.getByRole('status');
+    expect(status).toHaveClass('halloween-moment', 'boo');
+    expect(status).toHaveTextContent('BUSTED');
+    expect(status).toHaveTextContent('Alice got spooked');
+  });
+
+  it('celebrates a Haunted Hollow prediction with a treat storm', () => {
+    render(
+      <RoundMoment
+        event={{ id: 2, text: '', type: 'special', moment: 'prediction-hit' }}
+        name="Bea"
+        scene="halloween"
+      />,
+    );
+    const status = screen.getByRole('status');
+    expect(status).toHaveClass('halloween-moment', 'treat');
+    expect(status).toHaveTextContent('WITCHCRAFT!');
+    expect(status).toHaveTextContent('Bea saw it in the crystal ball');
+  });
+
+  it('keeps the standard moment when no themed scene is active', () => {
+    render(<RoundMoment event={{ id: 3, text: '', type: 'bust', moment: 'bust' }} name="Cy" />);
+    expect(screen.getByRole('status')).toHaveClass('round-moment', 'loss');
+  });
+});
+
+describe('HauntedClicks', () => {
+  function setup(reduce: boolean) {
+    vi.stubGlobal('matchMedia', (media: string) => ({
+      matches: reduce,
+      media,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    const { container } = render(
+      <>
+        <HauntedClicks />
+        <button>Draw</button>
+        <button disabled>Bank</button>
+      </>,
+    );
+    return container;
+  }
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('releases bats, a ghost, then candy from enabled buttons only', () => {
+    const container = setup(false);
+    const draw = screen.getByRole('button', { name: 'Draw' });
+    fireEvent.pointerDown(draw);
+    expect(container.querySelector('.haunt.bats')).toBeInTheDocument();
+    fireEvent.pointerDown(draw);
+    expect(container.querySelector('.haunt.ghost')).toHaveTextContent('boo!');
+    fireEvent.pointerDown(draw);
+    expect(container.querySelector('.haunt.candy')).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Bank' }));
+    expect(container.querySelectorAll('.haunt')).toHaveLength(3);
+  });
+
+  it('stays still for players who prefer reduced motion', () => {
+    const container = setup(true);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Draw' }));
+    expect(container.querySelector('.haunt')).not.toBeInTheDocument();
   });
 });
 
@@ -157,6 +237,11 @@ describe('AudioControls', () => {
     expect(screen.getByRole('heading', { name: 'Midnight Circuit' })).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Music style' }), 'western');
     expect(update).toHaveBeenLastCalledWith({ style: 'western' });
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Music style' }),
+      'halloween',
+    );
+    expect(update).toHaveBeenLastCalledWith({ style: 'halloween' });
     await userEvent.click(screen.getByRole('button', { name: /Play background music/ }));
     expect(update).toHaveBeenLastCalledWith({ music: true });
     await userEvent.click(screen.getByRole('button', { name: /Game sound effects/ }));

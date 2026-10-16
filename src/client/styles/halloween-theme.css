@@ -1,0 +1,1570 @@
+/* Haunted Hollow: a moonlit graveyard, grinning jack-o'-lanterns and a playful little fright. */
+:root[data-appearance='halloween'] {
+  color-scheme: dark;
+  --paper: #120a1f;
+  --surface: #1e1230;
+  --raised: #2d1b45;
+  --ink: #f4ecff;
+  --muted: #c3b2da;
+  --line: #4d3569;
+  --orange: #ff8a1f;
+  --on-accent: #1d0c02;
+  --accent-soft: #3c2152;
+  --hot: #a6ff4d;
+  --danger: #ffa08c;
+  --danger-soft: #4b1f2c;
+  --success: #a6ff4d;
+  --radius: 12px;
+  --display: 'Creepster', 'Barlow Condensed', fantasy;
+  --display-weight: 400;
+  --shadow: 0 14px 40px #07021099;
+  --halloween-pumpkin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M15 7c0-3 1-5 4-6l1 2c-2 1-3 2-3 4z' fill='%234a6b22'/%3E%3Cellipse cx='16' cy='18' rx='14' ry='12' fill='%23ff8a1f' stroke='%232a0f02' stroke-width='1.5'/%3E%3Cpath d='M16 6.5c-3 4-3 19 0 23M16 6.5c3 4 3 19 0 23' fill='none' stroke='%23c45a0c' stroke-width='1.2'/%3E%3Cpath d='M8 15l4-3 1.5 4.5zM24 15l-4-3-1.5 4.5zM7 20c4 4 14 4 18 0l-1.5 4c-3 2-12 2-15 0z' fill='%23ffe066' stroke='%232a0f02' stroke-width='.8'/%3E%3C/svg%3E");
+  --halloween-web-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M0 0L118 0M0 0L113 33M0 0L98 66M0 0L66 98M0 0L33 113M0 0L0 118M18 0Q14 2 17 5Q13 6 15 10Q10 10 10 15Q6 13 5 17Q2 14 0 18M38 0Q30 4 37 10Q28 13 32 21Q21 21 21 32Q13 28 10 37Q4 30 0 38M62 0Q49 7 60 17Q45 21 51 35Q35 35 35 51Q21 45 17 60Q7 49 0 62M90 0Q71 10 87 25Q65 30 75 50Q51 51 50 75Q30 65 25 87Q10 71 0 90' fill='none' stroke='%23e6dcf5' stroke-opacity='.4' stroke-width='1'/%3E%3C/svg%3E");
+  --halloween-web-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath transform='matrix(-1 0 0 1 120 0)' d='M0 0L118 0M0 0L113 33M0 0L98 66M0 0L66 98M0 0L33 113M0 0L0 118M18 0Q14 2 17 5Q13 6 15 10Q10 10 10 15Q6 13 5 17Q2 14 0 18M38 0Q30 4 37 10Q28 13 32 21Q21 21 21 32Q13 28 10 37Q4 30 0 38M62 0Q49 7 60 17Q45 21 51 35Q35 35 35 51Q21 45 17 60Q7 49 0 62M90 0Q71 10 87 25Q65 30 75 50Q51 51 50 75Q30 65 25 87Q10 71 0 90' fill='none' stroke='%23e6dcf5' stroke-opacity='.4' stroke-width='1'/%3E%3C/svg%3E");
+  --halloween-cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 32 32'%3E%3Cpath d='M15 7c0-3 1-5 4-6l1 2c-2 1-3 2-3 4z' fill='%234a6b22'/%3E%3Cellipse cx='16' cy='18' rx='14' ry='12' fill='%23ff8a1f' stroke='%232a0f02' stroke-width='1.5'/%3E%3Cpath d='M8 15l4-3 1.5 4.5zM24 15l-4-3-1.5 4.5zM7 20c4 4 14 4 18 0l-1.5 4c-3 2-12 2-15 0z' fill='%23ffe066' stroke='%232a0f02' stroke-width='.8'/%3E%3C/svg%3E")
+      14 16,
+    pointer;
+}
+
+/* Scenery sits behind the page, so the app itself lets the night sky through. */
+.app.appearance-halloween {
+  background: transparent;
+}
+.appearance-halloween .app-body {
+  position: relative;
+  z-index: 1;
+}
+.halloween-scenery {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 115%, #ff7a1a33, #0000 45%),
+    radial-gradient(ellipse at 50% 50%, #0000 40%, #04010aa6 100%),
+    linear-gradient(
+      180deg,
+      #06030d 0%,
+      #110725 32%,
+      #221040 58%,
+      #391652 76%,
+      #55204c 88%,
+      #6e2f36 100%
+    );
+}
+.halloween-stars i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: #f4ecff;
+  box-shadow: 0 0 6px #f4ecffaa;
+  animation: star-twinkle 3.4s var(--delay) ease-in-out infinite alternate;
+}
+.halloween-moon {
+  /* Parked in the quiet band between headlines and header controls. */
+  position: absolute;
+  top: 14%;
+  left: 41%;
+  width: min(13vw, 170px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.9;
+  background:
+    radial-gradient(circle at 34% 38%, #d8c78acc 0 5%, #0000 9%),
+    radial-gradient(circle at 63% 30%, #d8c78a88 0 3%, #0000 6%),
+    radial-gradient(circle at 58% 64%, #d8c78aaa 0 8%, #0000 12%),
+    radial-gradient(circle at 28% 66%, #d8c78a77 0 3%, #0000 6%),
+    radial-gradient(circle at 40% 35%, #fffdf0, #f6ecc2 55%, #dccb8c);
+  box-shadow:
+    0 0 50px 12px #fff4c855,
+    0 0 180px 70px #b89cff22;
+  animation: moon-glow 6s ease-in-out infinite alternate;
+}
+.halloween-cloud {
+  position: absolute;
+  top: 12%;
+  left: 0;
+  width: 480px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #1b0e2ee6 30%, #1b0e2e00 70%);
+  filter: blur(4px);
+  animation: cloud-drift 70s linear infinite;
+}
+.halloween-cloud.second {
+  top: 20%;
+  width: 360px;
+  height: 54px;
+  opacity: 0.8;
+  animation-duration: 95s;
+  animation-delay: -48s;
+}
+.flying-bat {
+  position: absolute;
+  top: var(--top);
+  left: 0;
+  width: 58px;
+  scale: var(--scale);
+  animation: bat-fly var(--speed) var(--delay) linear infinite;
+}
+.flying-bat .bat {
+  animation: bat-wobble 1.4s ease-in-out infinite alternate;
+}
+.bat {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.bat :is(.wing, .body) {
+  fill: #0a0512;
+}
+.bat .wing {
+  transform-box: view-box;
+  transform-origin: 32px 14px;
+  animation: bat-flap 0.2s ease-in-out infinite alternate;
+}
+.bat .eye {
+  fill: #ffcc33;
+}
+.halloween-spider {
+  position: absolute;
+  top: 0;
+  right: 27%;
+  width: 34px;
+  animation: spider-drop 16s ease-in-out infinite;
+}
+.halloween-spider::before {
+  /* The silk thread back up to the ceiling. */
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 8px);
+  width: 1px;
+  height: 100vh;
+  background: linear-gradient(180deg, #e6dcf500, #e6dcf599);
+}
+.halloween-spider svg {
+  display: block;
+  width: 100%;
+  fill: #0a0512;
+  stroke: #0a0512;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transform-origin: 50% 0;
+  animation: spider-swing 2.6s ease-in-out infinite alternate;
+}
+.halloween-spider .eye {
+  fill: #ff3355;
+  stroke: none;
+}
+.halloween-graveyard {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 26vh;
+  min-height: 150px;
+}
+.halloween-graveyard .far {
+  fill: #1f0e30;
+}
+.halloween-graveyard :is(.manor, .dead-tree) {
+  fill: #110820;
+}
+.halloween-graveyard :is(.near, .tombstones, .fence) {
+  fill: #08040f;
+}
+.halloween-graveyard .window {
+  fill: #ffb340;
+  filter: drop-shadow(0 0 6px #ff9a2a);
+  animation: window-flicker 5s steps(1, end) infinite;
+}
+.halloween-graveyard .window.late {
+  animation-delay: -2.3s;
+  animation-duration: 7s;
+}
+.jack-o-lantern {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.jack-o-lantern .shell ellipse {
+  fill: #e8701a;
+  stroke: #3a1504;
+  stroke-width: 2;
+}
+.jack-o-lantern .shell ellipse:nth-child(3) {
+  fill: #f7862a;
+}
+.jack-o-lantern .ribs {
+  fill: none;
+  stroke: #b44f0c;
+  stroke-width: 2;
+}
+.jack-o-lantern .stem {
+  fill: #4a6b22;
+}
+.jack-o-lantern .face {
+  fill: #ffe066;
+  filter: drop-shadow(0 0 4px #ffb020);
+  animation: candle-flicker 1.9s ease-in-out infinite;
+}
+.ground-lantern {
+  position: absolute;
+  bottom: 2.5vh;
+  left: 7%;
+  width: 66px;
+  filter: drop-shadow(0 0 24px #ff8a1f88);
+}
+.ground-lantern.second {
+  left: auto;
+  right: 31%;
+  bottom: 5vh;
+  width: 42px;
+}
+.ground-lantern.second .face {
+  animation-delay: -0.8s;
+}
+.halloween-wisps i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #effff0, #a6ff4d 45%, #a6ff4d00 70%);
+  box-shadow: 0 0 14px 4px #a6ff4d55;
+  opacity: 0;
+  animation: wisp-float var(--speed) var(--delay) ease-in-out infinite;
+}
+.peeking-ghost {
+  position: absolute;
+  left: 34%;
+  bottom: 10vh;
+  width: 72px;
+  opacity: 0;
+  animation: ghost-peek 19s ease-in-out infinite;
+}
+.ghost {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.ghost .sheet {
+  fill: #f4f0ff;
+}
+.ghost :is(.eye, .mouth) {
+  fill: #1a0e2a;
+}
+.ghost .blush {
+  fill: #ff9ccf77;
+}
+.halloween-fog {
+  position: absolute;
+  left: -50%;
+  bottom: -2vh;
+  width: 200%;
+  height: 30vh;
+  background:
+    radial-gradient(ellipse 18% 60% at 12% 80%, #d9cdf026, #0000),
+    radial-gradient(ellipse 22% 55% at 38% 90%, #d9cdf01e, #0000),
+    radial-gradient(ellipse 16% 50% at 63% 78%, #d9cdf024, #0000),
+    radial-gradient(ellipse 20% 60% at 88% 88%, #d9cdf01c, #0000);
+  filter: blur(10px);
+  animation: fog-drift 46s ease-in-out infinite alternate;
+}
+.halloween-fog.front {
+  height: 18vh;
+  opacity: 0.9;
+  animation-duration: 31s;
+  animation-direction: alternate-reverse;
+}
+
+/* Typography: dripping horror-movie headlines, crisp condensed sub-heads. */
+.app.appearance-halloween :is(h3, h4) {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.app.appearance-halloween h1 {
+  letter-spacing: 0.03em;
+  text-shadow:
+    3px 3px 0 #3a0f4d,
+    0 0 26px #ff8a1f44;
+}
+.app.appearance-halloween h1 :is(.round-tag, .round-slash) {
+  text-shadow: none;
+}
+.app.appearance-halloween .hero h1 {
+  font-size: clamp(48px, 5.8vw, 92px);
+  line-height: 1.02;
+}
+.appearance-halloween .hero h1 > span,
+.appearance-halloween .round-result h2 {
+  color: var(--orange);
+  animation: pumpkin-text-glow 2.8s ease-in-out infinite alternate;
+}
+.app.appearance-halloween .eyebrow {
+  color: #cfaaff;
+  letter-spacing: 0.26em;
+}
+.app.appearance-halloween .eyebrow::before {
+  content: '☾ ';
+  color: var(--hot);
+}
+.app.appearance-halloween .eyebrow > .tiny-line {
+  display: none;
+}
+
+/* Creepster numerals blur together, so scores and multipliers stay crisp and condensed. */
+.app.appearance-halloween
+  :is(.hand-score > strong, .stats-grid strong, .wheel-hub strong, .roulette-caption > strong) {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-weight: 800;
+}
+
+/* A creaky, cobwebbed top bar with a lit pumpkin by the wordmark. */
+.appearance-halloween .topbar {
+  position: sticky;
+  background:
+    var(--halloween-web-left) left top / 96px no-repeat,
+    var(--halloween-web-right) right top / 96px no-repeat,
+    linear-gradient(180deg, #1f0f33, #140a24);
+  border-bottom: 2px solid #ff8a1f44;
+  box-shadow:
+    0 1px 0 #a6ff4d22,
+    0 10px 30px #0008;
+}
+.appearance-halloween .wordmark {
+  color: var(--orange);
+  text-shadow: 0 0 16px #ff8a1f66;
+}
+.appearance-halloween .wordmark::before {
+  content: '';
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.3em;
+  vertical-align: -0.12em;
+  background: var(--halloween-pumpkin) center / contain no-repeat;
+  filter: drop-shadow(0 0 6px #ff8a1f);
+  animation: candle-flicker 2.2s ease-in-out infinite;
+}
+
+/* Glowing pumpkin buttons, misty violet secondaries and a pumpkin pointer. */
+.app.appearance-halloween
+  :is(
+    .button,
+    .rail-button,
+    .icon-button,
+    .text-button,
+    .appearance-choice,
+    .option,
+    .mode-option,
+    .theme-option,
+    select
+  ):not(:disabled) {
+  cursor: var(--halloween-cursor);
+}
+.app.appearance-halloween .button.primary {
+  background: linear-gradient(180deg, #ffb357, #ff8a1f 52%, #d9600c);
+  border: 1px solid #ffc982;
+  color: #1d0c02;
+  letter-spacing: 0.02em;
+  box-shadow:
+    inset 0 1px 0 #fff7,
+    inset 0 -3px 0 #a8460a,
+    0 4px 0 #4a1a04,
+    0 0 22px #ff8a1f55;
+}
+.app.appearance-halloween .button.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffc277, #ff9a35 52%, #e56c12);
+  animation: pumpkin-button-glow 1.2s ease-in-out infinite alternate;
+}
+.app.appearance-halloween .button.secondary {
+  background: linear-gradient(180deg, #321c4e, #24133a);
+  border-color: #6f4b9a;
+  color: var(--ink);
+}
+.app.appearance-halloween .button.secondary:hover:not(:disabled) {
+  border-color: var(--hot);
+  box-shadow: 0 0 18px #a6ff4d33;
+}
+
+/* The séance table: deep velvet, moonlight from above, candle glow below, webs in the corners. */
+.app.appearance-halloween .table-center {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% -10%, #c9b6ff24, transparent 55%),
+    radial-gradient(ellipse at 50% 115%, #ff8a1f26, transparent 50%),
+    linear-gradient(180deg, #24123a, #170b28);
+  border: 1px solid #4d3569;
+  box-shadow:
+    inset 0 0 0 1px #ff8a1f22,
+    inset 0 0 80px #000b,
+    0 22px 55px #000a;
+}
+.app.appearance-halloween .table-center::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    var(--halloween-web-left) left top / 110px no-repeat,
+    var(--halloween-web-right) right top / 110px no-repeat;
+  opacity: 0.7;
+}
+.app.appearance-halloween .your-hand {
+  margin-top: 8px;
+  padding: 16px 16px 10px;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 50% 130%, #a6ff4d26, transparent 60%),
+    radial-gradient(ellipse at 50% 0, #ffffff0a, transparent 60%), #1a0f2a;
+  outline: 1px dashed #a6ff4d40;
+  outline-offset: -7px;
+  box-shadow:
+    inset 0 2px 16px #000b,
+    0 0 24px #a6ff4d14;
+}
+.app.appearance-halloween .hand-cards .playing-card {
+  animation-name: card-rise-from-grave;
+}
+.app.appearance-halloween :is(.scoreboard, .activity-panel, .invite-panel, .room-card) {
+  background:
+    linear-gradient(180deg, #ffffff08, transparent 40%),
+    radial-gradient(ellipse at 100% 0, #ff8a1f12, transparent 50%), #1e1230;
+  border: 1px solid #4d3569;
+  box-shadow:
+    inset 0 0 0 1px #ffffff08,
+    0 12px 30px #0009;
+}
+.app.appearance-halloween .standing.current {
+  border-color: var(--orange);
+  box-shadow: 0 0 18px #ff8a1f44;
+}
+
+/* Every opponent rests under a mossy tombstone. */
+.app.appearance-halloween .opponent {
+  --surface: #3a3448;
+  --raised: #48425a;
+  --line: #6b6380;
+  --muted: #c9c1d9;
+  --accent-soft: #4c4660;
+  position: relative;
+  padding-top: 36px;
+  border: 1px solid #0b0814;
+  border-radius: 999px 999px 10px 10px / 70px 70px 10px 10px;
+  background:
+    radial-gradient(ellipse at 50% 0, #ffffff1c, transparent 60%),
+    radial-gradient(circle at 18% 72%, #ffffff0a 0 2px, #0000 3px),
+    radial-gradient(circle at 74% 58%, #00000022 0 3px, #0000 4px),
+    radial-gradient(circle at 42% 88%, #00000018 0 2px, #0000 3px),
+    linear-gradient(0deg, #3f5a1e 0 4px, #0000 9px), linear-gradient(180deg, #4d475e, #332d42);
+  box-shadow:
+    0 12px 24px #000b,
+    inset 0 -10px 18px #00000055,
+    inset 0 2px 0 #ffffff1a;
+}
+.app.appearance-halloween .opponent::before {
+  content: 'R.I.P.';
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Creepster', fantasy;
+  font-size: 18px;
+  letter-spacing: 0.24em;
+  color: #a79fbc;
+  text-shadow:
+    0 1px 0 #ffffff22,
+    0 -1px 0 #0008;
+}
+.app.appearance-halloween .opponent.current {
+  border-color: var(--hot);
+  box-shadow:
+    0 0 0 2px #a6ff4d,
+    0 0 30px #a6ff4d66,
+    inset 0 -10px 18px #00000055;
+  animation: grave-awake 2.4s ease-in-out infinite alternate;
+}
+.app.appearance-halloween .opponent.current::before {
+  content: '☾ RISING ☽';
+  color: var(--hot);
+  text-shadow: 0 0 12px #a6ff4d88;
+}
+.app.appearance-halloween .opponent.busted {
+  filter: grayscale(0.7) brightness(0.72);
+}
+.app.appearance-halloween :is(.hand-eliminated, .opponent-eliminated) {
+  border: 2px solid var(--hot);
+  color: var(--hot);
+  background: #120a1fdd;
+  font-family: 'Creepster', fantasy;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px #a6ff4d88;
+  mix-blend-mode: normal;
+}
+
+/* Your turn: the turn marker becomes a flickering jack-o'-lantern. */
+.app.appearance-halloween .turn-banner.your-turn {
+  background:
+    radial-gradient(ellipse at 0 50%, #ff8a1f33, transparent 50%),
+    linear-gradient(110deg, #2d1546, #4b1d4e 55%, #2d1546);
+  border-color: var(--orange);
+  color: #fff3e6;
+  box-shadow:
+    inset 0 0 0 1px #ffb35744,
+    0 0 26px #ff8a1f44;
+}
+.app.appearance-halloween .your-turn .turn-orb {
+  color: transparent;
+  background: var(--halloween-pumpkin) center / 100% no-repeat;
+  border-radius: 0;
+  filter: drop-shadow(0 0 8px #ff8a1f);
+  animation: lantern-bob 1.6s ease-in-out infinite alternate;
+}
+.app.appearance-halloween .your-turn .turn-orb svg {
+  opacity: 0;
+}
+
+/* Busted seats get slimed; seats that hit glow like a lantern. */
+.app.appearance-halloween :is(.your-hand, .opponent, .standing).moment-bust {
+  position: relative;
+  animation: haunted-seat-shiver 1000ms ease-out both;
+}
+.app.appearance-halloween :is(.your-hand, .opponent, .standing).moment-bust::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 5% 32% at 12% 0, #8fe33a 92%, #0000),
+    radial-gradient(ellipse 4% 52% at 31% 0, #8fe33a 92%, #0000),
+    radial-gradient(ellipse 6% 24% at 49% 0, #8fe33a 92%, #0000),
+    radial-gradient(ellipse 4% 44% at 68% 0, #8fe33a 92%, #0000),
+    radial-gradient(ellipse 5% 30% at 87% 0, #8fe33a 92%, #0000),
+    linear-gradient(180deg, #8fe33a 0 10px, #0000 12px);
+  opacity: 0.85;
+  transform-origin: 50% 0;
+  animation: seat-slime 1600ms ease-in both;
+}
+.app.appearance-halloween :is(.your-hand, .opponent, .standing).moment-hit {
+  animation: haunted-seat-glow 1500ms ease-out both;
+}
+
+/* Candy corn, gumdrops and bat-wing purple instead of confetti. */
+.app.appearance-halloween .celebration i {
+  width: 12px;
+  height: 14px;
+  background: linear-gradient(180deg, #fff6e0 0 30%, #ff8a1f 30% 64%, #ffcf2e 64%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.app.appearance-halloween .celebration i:nth-child(3n) {
+  width: 11px;
+  height: 11px;
+  border-radius: 50% 50% 30% 30%;
+  background: radial-gradient(circle at 35% 30%, #e6c8ff, #8a3fd1 60%);
+  clip-path: none;
+}
+.app.appearance-halloween .celebration i:nth-child(3n + 1) {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #efffd8, #a6ff4d 60%);
+  clip-path: none;
+}
+.app.appearance-halloween .bank-lock b {
+  font-family: 'Creepster', fantasy;
+  font-weight: 400;
+  border: 2px solid var(--orange);
+  box-shadow: 0 0 14px #ff8a1f66;
+}
+
+/* Moonlit orbits, glowing sparks and a hanging graveyard sign around the hero cards. */
+.appearance-halloween .orbit {
+  border: 2px dashed #8a5fc0;
+  opacity: 0.55;
+}
+.appearance-halloween .art-spark {
+  color: var(--orange);
+  text-shadow: 0 0 18px #ff8a1fbb;
+}
+.appearance-halloween .spark-two {
+  color: var(--hot);
+  text-shadow: 0 0 18px #a6ff4d99;
+}
+.appearance-halloween .art-dot {
+  background: var(--hot);
+  box-shadow: 0 0 14px var(--hot);
+}
+.appearance-halloween .hero-sticker {
+  padding: 8px 14px;
+  font-family: 'Creepster', fantasy;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--orange);
+  background: linear-gradient(180deg, #2d1846, #1d0f30);
+  border: 1px solid #6f4b9a;
+  box-shadow:
+    0 0 18px #ff8a1f33,
+    0 8px 18px #0009;
+}
+.appearance-halloween .hero-sticker svg {
+  color: var(--hot);
+}
+
+/* Dialogs become a cobwebbed crypt door. */
+.app.appearance-halloween .modal {
+  background:
+    var(--halloween-web-right) right top / 120px no-repeat,
+    radial-gradient(ellipse at 50% 0, #c9b6ff14, transparent 55%),
+    linear-gradient(180deg, #23143a, #170c28);
+  border: 1px solid #4d3569;
+  box-shadow:
+    inset 0 0 0 1px #ff8a1f22,
+    0 0 60px #8a3fd133,
+    0 30px 80px #000c;
+}
+.app.appearance-halloween .modal::backdrop {
+  background: #07021099;
+  backdrop-filter: blur(2px) saturate(0.7);
+}
+
+/* Round moments: a ghostly BOO for busts, a trick-or-treat storm for wins. */
+.halloween-moment {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  text-align: center;
+  animation: moment-screen 2300ms both;
+}
+.halloween-moment.boo {
+  animation:
+    moment-screen 2300ms both,
+    haunted-quake 1000ms 450ms both;
+}
+.halloween-moment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, #3a1250d9, #06020df5 75%);
+}
+.halloween-moment.treat::before {
+  background: radial-gradient(
+    circle at center,
+    #ffb34d 0%,
+    #a2361ee0 30%,
+    #3a1250eb 58%,
+    #06020df5
+  );
+}
+.boo-lightning {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #e9e0ff;
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: lightning-flash 1100ms 80ms both;
+}
+.boo-lightning svg {
+  position: absolute;
+  left: 16%;
+  top: 0;
+  width: clamp(40px, 6vw, 80px);
+  height: 64vh;
+  fill: #fff;
+  filter: drop-shadow(0 0 18px #c9b6ff);
+}
+.slime-drips {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+}
+.slime-drips::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 28px;
+  background: linear-gradient(180deg, #b6ff66, #7fd12a);
+  box-shadow: 0 6px 18px #a6ff4d66;
+  transform-origin: 50% 0;
+  animation: slime-band 400ms 150ms ease-out both;
+}
+.slime-drips i {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--width);
+  height: var(--length);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, #6fc020, #b6ff66 40%, #8fe33a);
+  box-shadow:
+    inset -3px 0 0 #00000026,
+    0 0 16px #a6ff4d55;
+  transform: scaleY(0);
+  transform-origin: 50% 0;
+  animation: slime-drip 1700ms var(--delay) cubic-bezier(0.5, 0, 0.35, 1) both;
+}
+.boo-ghost {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: clamp(200px, 34vw, 400px);
+  margin: calc(clamp(200px, 34vw, 400px) * -0.6) 0 0 calc(clamp(200px, 34vw, 400px) * -0.5);
+  filter: drop-shadow(0 0 40px #e9e0ffaa);
+  animation: ghost-swoop 2200ms cubic-bezier(0.25, 0.9, 0.3, 1.1) both;
+}
+.halloween-moment-copy {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #f4ecff;
+  text-shadow: 0 4px 20px #000c;
+}
+.halloween-moment-copy strong {
+  font-family: 'Creepster', fantasy;
+  font-weight: 400;
+  font-size: clamp(60px, 14vw, 180px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--hot, #a6ff4d);
+  text-shadow:
+    4px 4px 0 #2a0f3a,
+    0 0 40px #a6ff4d99;
+  animation: spooky-drop-in 700ms 650ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.halloween-moment.treat .halloween-moment-copy strong {
+  color: #ffb357;
+  text-shadow:
+    4px 4px 0 #4a1450,
+    0 0 50px #ff8a1fbb;
+  animation-delay: 380ms;
+}
+.halloween-moment .moment-eyebrow {
+  margin-top: 6px;
+  color: #cfaaff;
+  animation: moment-copy 600ms 500ms both;
+}
+.halloween-moment .moment-player {
+  margin-top: 8px;
+  animation: moment-copy 600ms 800ms both;
+}
+.boo-word {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 6px 22px 10px;
+  border-radius: 999px;
+  font-family: 'Creepster', fantasy;
+  font-size: clamp(36px, 6vw, 70px);
+  line-height: 1;
+  color: #1a0e2a;
+  text-shadow: none;
+  background: #f4f0ff;
+  box-shadow:
+    0 0 0 4px #1a0e2a,
+    0 0 40px #e9e0ffaa;
+  animation: boo-pop 640ms 420ms cubic-bezier(0.2, 2, 0.35, 1) both;
+}
+.treat-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax 0 0 -110vmax;
+  background: repeating-conic-gradient(
+    #ffb3572a 0 7deg,
+    #0000 7deg 14deg,
+    #8a3fd122 14deg 21deg,
+    #0000 21deg 28deg
+  );
+  mask: radial-gradient(circle, #000 0, #0000 45%);
+  animation: rays-twist 2300ms linear both;
+}
+.treat-lantern {
+  position: relative;
+  width: clamp(110px, 16vw, 170px);
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 40px #ff8a1fcc);
+  animation: lantern-rise 900ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.treat-lantern .jack-o-lantern .face {
+  animation: candle-flicker 0.9s ease-in-out infinite;
+}
+.swarm-bat {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 46px;
+  margin: -12px 0 0 -23px;
+  opacity: 0;
+  animation: bat-burst 1500ms var(--delay) cubic-bezier(0.2, 0.7, 0.4, 1) both;
+}
+.swarm-bat .bat {
+  rotate: calc(var(--angle) * -1);
+}
+.treat-rain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.treat-rain i {
+  position: absolute;
+  left: var(--x);
+  top: -30px;
+  width: 20px;
+  height: 24px;
+  background: linear-gradient(180deg, #fff6e0 0 30%, #ff8a1f 30% 64%, #ffcf2e 64%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  animation: treat-fall 2100ms var(--delay) cubic-bezier(0.35, 0.1, 0.6, 1) both;
+}
+.treat-rain i:nth-child(4n) {
+  /* Swirly lollipops. */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  clip-path: none;
+  background: repeating-conic-gradient(#fff 0 30deg, #a6ff4d 30deg 60deg, #8a3fd1 60deg 90deg);
+  box-shadow: 0 0 0 2px #fff;
+}
+.treat-rain i:nth-child(4n + 1) {
+  /* Wrapped toffees. */
+  width: 30px;
+  height: 14px;
+  clip-path: polygon(
+    0 0,
+    22% 30%,
+    22% 0,
+    78% 0,
+    78% 30%,
+    100% 0,
+    100% 100%,
+    78% 70%,
+    78% 100%,
+    22% 100%,
+    22% 70%,
+    0 100%
+  );
+  background: linear-gradient(90deg, #8a3fd1 0 22%, #ff8a1f 22% 78%, #8a3fd1 78%);
+}
+.treat-rain i:nth-child(4n + 2) {
+  /* Gumdrops. */
+  width: 18px;
+  height: 18px;
+  border-radius: 50% 50% 20% 20%;
+  clip-path: none;
+  background: radial-gradient(circle at 35% 30%, #efffd8, #a6ff4d 55%, #5a9a1a);
+}
+
+/* Every button press releases a little haunt. */
+.haunted-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+.haunt {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.haunt-puff {
+  position: absolute;
+  left: -30px;
+  top: -30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0000 35%, #b98cff88 50%, #a6ff4d33 62%, #0000 72%);
+  animation: haunt-puff 600ms ease-out both;
+}
+.haunt-bat {
+  position: absolute;
+  left: -15px;
+  top: -8px;
+  width: 30px;
+  animation: haunt-bat-fly 1100ms cubic-bezier(0.2, 0.7, 0.4, 1) both;
+}
+.haunt-bat:nth-of-type(2) {
+  animation-delay: 60ms;
+}
+.haunt-bat:nth-of-type(3) {
+  animation-delay: 120ms;
+}
+.haunt-ghost {
+  position: absolute;
+  left: -22px;
+  top: -48px;
+  width: 44px;
+  animation: haunt-ghost-rise 1500ms ease-out both;
+}
+.haunt-ghost .ghost {
+  filter: drop-shadow(0 0 10px #e9e0ffaa);
+}
+.haunt-ghost b {
+  position: absolute;
+  left: 34px;
+  top: -14px;
+  font-family: 'Creepster', fantasy;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--hot, #a6ff4d);
+  text-shadow:
+    0 0 8px #a6ff4d,
+    1px 1px 0 #1a0e2a;
+  animation: boo-pop 500ms 120ms cubic-bezier(0.2, 2, 0.35, 1) both;
+}
+.haunt-candy {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #ff8a1f;
+  box-shadow: 0 0 8px currentColor;
+  animation: candy-burst 900ms cubic-bezier(0.15, 0.8, 0.4, 1) both;
+}
+.haunt-candy:nth-child(3n) {
+  background: #a6ff4d;
+  border-radius: 50%;
+}
+.haunt-candy:nth-child(3n + 1) {
+  background: #b98cff;
+  border-radius: 50% 50% 20% 20%;
+}
+
+/* The appearance picker preview. */
+.halloween .appearance-preview {
+  background:
+    radial-gradient(circle at 80% 24%, #fff7d8 0 9%, #f6ecc244 11%, #0000 20%),
+    linear-gradient(176deg, #0000 74%, #08040f 74.5%),
+    linear-gradient(180deg, #110725, #391652 70%, #6e2f36);
+  color: var(--orange, #ff8a1f);
+  border: 1px solid #08040f;
+}
+.halloween .preview-brand {
+  font-family: 'Creepster', fantasy;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #ff8a1f;
+}
+.halloween .preview-card {
+  font-family: 'Creepster', fantasy;
+  font-weight: 400;
+  background: linear-gradient(180deg, #f4f0ff, #d7cdea);
+  color: #3a1650;
+  box-shadow: 0 0 10px #a6ff4d55;
+  transform: rotate(-5deg);
+}
+.halloween .preview-card:nth-child(2) {
+  transform: rotate(4deg) translateY(-3px);
+}
+.halloween .preview-actions i {
+  background: linear-gradient(180deg, #ffb357, #d9600c);
+}
+.halloween .preview-actions i:last-child {
+  background: #321c4e;
+}
+
+@keyframes star-twinkle {
+  from {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+@keyframes moon-glow {
+  from {
+    filter: brightness(1);
+    box-shadow:
+      0 0 50px 12px #fff4c855,
+      0 0 180px 70px #b89cff22;
+  }
+  to {
+    filter: brightness(1.06);
+    box-shadow:
+      0 0 70px 18px #fff4c866,
+      0 0 220px 90px #b89cff33;
+  }
+}
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-520px);
+  }
+  to {
+    transform: translateX(calc(100vw + 40px));
+  }
+}
+@keyframes bat-fly {
+  0% {
+    transform: translateX(-12vw);
+  }
+  60%,
+  100% {
+    transform: translateX(112vw);
+  }
+}
+@keyframes bat-wobble {
+  from {
+    translate: 0 0;
+    rotate: -6deg;
+  }
+  to {
+    translate: 0 -28px;
+    rotate: 8deg;
+  }
+}
+@keyframes bat-flap {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(-0.35);
+  }
+}
+@keyframes spider-drop {
+  0%,
+  8% {
+    transform: translateY(-80px);
+  }
+  32%,
+  58% {
+    transform: translateY(26vh);
+  }
+  44% {
+    transform: translateY(22vh);
+  }
+  80%,
+  100% {
+    transform: translateY(-80px);
+  }
+}
+@keyframes spider-swing {
+  from {
+    rotate: -8deg;
+  }
+  to {
+    rotate: 8deg;
+  }
+}
+@keyframes window-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  41% {
+    opacity: 0.35;
+  }
+  43% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.5;
+  }
+  47% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 0.15;
+  }
+  86% {
+    opacity: 1;
+  }
+}
+@keyframes candle-flicker {
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px #ffb020);
+  }
+  20% {
+    opacity: 0.82;
+  }
+  35% {
+    opacity: 1;
+    filter: drop-shadow(0 0 9px #ff9a2a);
+  }
+  52% {
+    opacity: 0.88;
+  }
+  70% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px #ffb020);
+  }
+  84% {
+    opacity: 0.9;
+  }
+}
+@keyframes wisp-float {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(26px, -34px) scale(1);
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-14px, -70px) scale(0.5);
+  }
+}
+@keyframes ghost-peek {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(0, 60px) scale(0.8);
+  }
+  28% {
+    opacity: 0.8;
+    transform: translate(10px, -10px) scale(1) rotate(-6deg);
+  }
+  38% {
+    transform: translate(40px, -36px) rotate(6deg);
+  }
+  48% {
+    opacity: 0.75;
+    transform: translate(80px, -18px) rotate(-4deg);
+  }
+  58%,
+  100% {
+    opacity: 0;
+    transform: translate(120px, 60px) scale(0.8);
+  }
+}
+@keyframes fog-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(22%);
+  }
+}
+@keyframes pumpkin-text-glow {
+  from {
+    text-shadow:
+      3px 3px 0 #3a0f4d,
+      0 0 14px #ff8a1f55;
+  }
+  to {
+    text-shadow:
+      3px 3px 0 #3a0f4d,
+      0 0 34px #ff8a1fcc;
+  }
+}
+@keyframes pumpkin-button-glow {
+  from {
+    box-shadow:
+      inset 0 1px 0 #fff7,
+      inset 0 -3px 0 #a8460a,
+      0 5px 0 #4a1a04,
+      0 0 16px #ff8a1f66;
+  }
+  to {
+    box-shadow:
+      inset 0 1px 0 #fff7,
+      inset 0 -3px 0 #a8460a,
+      0 5px 0 #4a1a04,
+      0 0 34px #ffb357cc;
+  }
+}
+@keyframes card-rise-from-grave {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 70px, 0) rotate(-10deg) scale(0.75);
+    filter: blur(5px) brightness(2) hue-rotate(60deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(0, -12px, 0) rotate(4deg) scale(1.04);
+    filter: blur(0) brightness(1.2);
+  }
+  78% {
+    transform: translate3d(0, 3px, 0) rotate(-1deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0) scale(1);
+    filter: none;
+  }
+}
+@keyframes grave-awake {
+  from {
+    box-shadow:
+      0 0 0 2px #a6ff4d,
+      0 0 18px #a6ff4d44,
+      inset 0 -10px 18px #00000055;
+  }
+  to {
+    box-shadow:
+      0 0 0 2px #a6ff4d,
+      0 0 38px #a6ff4d88,
+      inset 0 -10px 18px #00000055;
+  }
+}
+@keyframes lantern-bob {
+  from {
+    transform: translateY(1px) rotate(-6deg);
+    filter: drop-shadow(0 0 4px #ff8a1f) brightness(0.95);
+  }
+  to {
+    transform: translateY(-3px) rotate(6deg);
+    filter: drop-shadow(0 0 12px #ffb357) brightness(1.15);
+  }
+}
+@keyframes haunted-seat-shiver {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  8% {
+    transform: translate(-6px, 0) skewX(-3deg);
+    filter: hue-rotate(80deg) brightness(1.5);
+  }
+  16% {
+    transform: translate(6px, 0) skewX(3deg);
+  }
+  26% {
+    transform: translate(-4px, 0) skewX(-2deg);
+    filter: grayscale(0.6) brightness(1.2);
+  }
+  38% {
+    transform: translate(3px, 0);
+  }
+  52% {
+    transform: translate(-1px, 0);
+    filter: grayscale(0.3);
+  }
+}
+@keyframes seat-slime {
+  0% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  25% {
+    opacity: 0.9;
+    transform: scaleY(1.1);
+  }
+  40%,
+  80% {
+    opacity: 0.85;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1.2);
+  }
+}
+@keyframes haunted-seat-glow {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  25%,
+  60% {
+    box-shadow:
+      0 0 0 3px #ff8a1f,
+      0 0 44px #ff8a1fbb;
+  }
+}
+@keyframes haunted-quake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  6%,
+  40% {
+    transform: translate(-10px, 4px) rotate(-0.4deg);
+  }
+  14%,
+  48% {
+    transform: translate(9px, -5px) rotate(0.4deg);
+  }
+  22%,
+  56% {
+    transform: translate(-5px, 2px);
+  }
+  30%,
+  64% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes lightning-flash {
+  0% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 0.85;
+  }
+  9% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.6;
+  }
+  22%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes slime-band {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes slime-drip {
+  0% {
+    transform: scaleY(0);
+  }
+  55% {
+    transform: scaleY(1.06);
+  }
+  70%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+@keyframes ghost-swoop {
+  0% {
+    opacity: 0;
+    transform: translate(-38vw, -34vh) scale(0.12) rotate(-30deg);
+  }
+  18% {
+    opacity: 0.9;
+    transform: translate(-18vw, 8vh) scale(0.4) rotate(18deg);
+  }
+  32% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.7) rotate(-4deg);
+  }
+  42% {
+    transform: translate(0, 0) scale(1.45) rotate(3deg);
+  }
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translate(0, -6vh) scale(1) rotate(-2deg);
+  }
+}
+@keyframes spooky-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scaleY(1.5);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    filter: blur(0);
+  }
+}
+@keyframes boo-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-20deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.25) rotate(6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-4deg);
+  }
+}
+@keyframes rays-twist {
+  from {
+    transform: rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: rotate(-50deg);
+    opacity: 1;
+  }
+}
+@keyframes lantern-rise {
+  from {
+    opacity: 0;
+    transform: translateY(40vh) scale(0.3) rotate(-25deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+}
+@keyframes bat-burst {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(0) scale(0.3);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(min(48vw, 560px)) scale(1.2);
+  }
+}
+@keyframes treat-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.9;
+    transform: translate(var(--drift), 110vh) rotate(var(--spin));
+  }
+}
+@keyframes haunt-puff {
+  from {
+    opacity: 1;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes haunt-bat-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--turn)) scale(1);
+  }
+}
+@keyframes haunt-ghost-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 20px) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-10px, -26px) rotate(-8deg);
+  }
+  75% {
+    opacity: 0.8;
+    transform: translate(8px, -50px) rotate(6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, -78px) scale(0.9);
+  }
+}
+@keyframes candy-burst {
+  from {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateX(0) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(58px) rotate(var(--spin));
+  }
+}
+
+@media (max-width: 850px) {
+  .halloween-moon {
+    left: auto;
+    right: 6%;
+    top: 9%;
+    width: 22vw;
+    opacity: 0.6;
+  }
+  .ground-lantern {
+    width: 48px;
+  }
+  .ground-lantern.second {
+    width: 32px;
+  }
+  .peeking-ghost {
+    width: 54px;
+  }
+  .app.appearance-halloween .opponent {
+    border-radius: 999px 999px 10px 10px / 46px 46px 10px 10px;
+  }
+  .app.appearance-halloween .opponent::before {
+    font-size: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .halloween-scenery *,
+  .halloween-scenery *::before,
+  .halloween-scenery *::after,
+  .halloween-moment,
+  .halloween-moment *,
+  .halloween-moment *::before,
+  .halloween-moment::before,
+  .app.appearance-halloween .opponent.current,
+  .app.appearance-halloween .wordmark::before,
+  .appearance-halloween .hero h1 > span,
+  .appearance-halloween .round-result h2 {
+    animation: none !important;
+  }
+  .flying-bat,
+  .halloween-cloud,
+  .halloween-wisps,
+  .peeking-ghost,
+  .halloween-spider,
+  .treat-rain,
+  .swarm-bat,
+  .slime-drips,
+  .boo-lightning,
+  .boo-ghost,
+  .app.appearance-halloween :is(.your-hand, .opponent, .standing).moment-bust::after {
+    display: none;
+  }
+}

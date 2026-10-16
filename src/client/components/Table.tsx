@@ -30,7 +30,7 @@ import { Avatar, PlayerStatus, Sunburst } from './ui';
 import { HandCards } from './HandCards';
 import { ActiveEffectHint, SpecialCardGuide } from './SpecialCardGuide';
 import { RouletteDialog } from './Roulette';
-import { AnimatedNumber, Celebration, RoundMoment } from './Motion';
+import { AnimatedNumber, Celebration, RoundMoment, type MomentScene } from './Motion';
 import { useHandFeedback } from '../motion';
 import { momentDelay, rouletteResult, type RouletteBet } from '../roulette';
 import type { SoundCue } from '../audio';
@@ -277,7 +277,7 @@ export function Table({
   onRules,
   onSpin,
   playSound,
-  western = false,
+  scene,
 }: {
   room: PublicRoom;
   profile: Profile;
@@ -286,7 +286,7 @@ export function Table({
   onRules: () => void;
   onSpin: () => Promise<void>;
   playSound: (cue: SoundCue) => void;
-  western?: boolean;
+  scene?: MomentScene;
 }) {
   const me = room.players.find((p) => p.id === profile.id)!;
   const score = scoreHand(me, room);
@@ -943,7 +943,7 @@ export function Table({
         />
       )}
       {moment && momentPlayer && (
-        <RoundMoment key={moment.id} event={moment} name={momentPlayer.name} western={western} />
+        <RoundMoment key={moment.id} event={moment} name={momentPlayer.name} scene={scene} />
       )}
     </>
   );
