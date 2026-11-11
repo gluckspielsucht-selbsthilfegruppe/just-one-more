@@ -49,3 +49,18 @@ test('the chosen app theme is saved and survives a reload', async ({ page }) => 
   await expect(page.getByText('All systems ready to play')).toBeVisible();
   await expect(page.locator('.app')).toHaveClass(/appearance-velvet/);
 });
+
+test('Haunted Hollow raises its moonlit graveyard and keeps it after a reload', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('button', { name: 'Choose app theme' }).click();
+  await page.getByRole('button', { name: /Haunted Hollow/ }).click();
+  await expect(page.locator('.app')).toHaveClass(/appearance-halloween/);
+  await expect(page.locator('.halloween-scenery')).toBeAttached();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Dare to draw');
+  await page.reload();
+  await expect(page.getByText('All systems ready to play')).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'halloween');
+  await expect(page.locator('.halloween-scenery')).toBeAttached();
+});

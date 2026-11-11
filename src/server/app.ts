@@ -426,7 +426,7 @@ export function createApplication(options: ApplicationOptions = {}) {
         name: cleanName,
         color: z.enum(COLORS as [string, ...string[]]),
         theme: z.enum(CARD_DESIGNS),
-        appearance: z.enum(['neon', 'velvet', 'pop', 'glow', 'western']).optional(),
+        appearance: z.enum(['neon', 'velvet', 'pop', 'glow', 'western', 'halloween']).optional(),
       })
       .safeParse(req.body);
     if (!parsed.success)

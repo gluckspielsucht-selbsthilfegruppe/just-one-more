@@ -476,7 +476,7 @@ describe('four-player real-time server', () => {
     await b.request('ready');
     await a.request('start');
     const before = structuredClone(a.state.room!);
-    for (const appearance of ['velvet', 'pop', 'glow', 'western', 'neon'] as const) {
+    for (const appearance of ['velvet', 'pop', 'glow', 'western', 'halloween', 'neon'] as const) {
       const res = await request(
         'profile',
         { name: 'Alice', color: a.state.profile.color, theme: 'midnight', appearance },

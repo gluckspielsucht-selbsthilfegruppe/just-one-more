@@ -3,6 +3,10 @@ import { BrainCircuit, Skull, Sparkles } from 'lucide-react';
 import type { GameEvent } from '../../shared/types';
 import { useReducedMotion } from '../motion';
 import { WesternMoment } from './Western';
+import { HalloweenMoment } from './Halloween';
+
+/** Themes that replace the standard round moments with their own full-screen scenes. */
+export type MomentScene = 'western' | 'halloween';
 
 export function AnimatedNumber({ value, from }: { value: number; from?: number }) {
   const reduced = useReducedMotion();
@@ -57,11 +61,11 @@ export function Celebration() {
 export function RoundMoment({
   event,
   name,
-  western = false,
+  scene,
 }: {
   event: GameEvent;
   name: string;
-  western?: boolean;
+  scene?: MomentScene;
 }) {
   if (event.moment === 'hackathon')
     return (
@@ -92,7 +96,8 @@ export function RoundMoment({
         </div>
       </div>
     );
-  if (western) return <WesternMoment event={event} name={name} />;
+  if (scene === 'western') return <WesternMoment event={event} name={name} />;
+  if (scene === 'halloween') return <HalloweenMoment event={event} name={name} />;
   const lost = event.moment === 'bust' || event.moment === 'roulette-loss';
   return (
     <div className={`round-moment ${lost ? 'loss' : 'hit'}`} role="status" aria-live="polite">
